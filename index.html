@@ -74,6 +74,9 @@ input,select,textarea{
   color:var(--text);border-radius:10px;padding:9px 12px;font-size:14px;width:100%;
 }
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+/* تقويم المتصفح بألوان متناسقة مع المظهر + مؤشر نقر */
+input[type="date"]{color-scheme:dark;cursor:pointer}
+body.light input[type="date"]{color-scheme:light}
 label{font-size:13px;color:var(--text2);font-weight:700;display:block;margin-bottom:5px}
 .field{margin-bottom:13px}
 .switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text2)}
@@ -226,10 +229,10 @@ nav.tabs .ico{width:16px;height:16px}
   <div class="header-row">
     <div class="logo"><span class="dot"></span> محفظتي</div>
     <div class="indices">
-      <div class="index-chip" id="chip-sa" title="قيمة المحفظة السعودية والتغير اليومي">
+      <div class="index-chip" id="chip-sa" title="قيمة المحفظة السعودية وأداؤها الكلي منذ الشراء">
         <span class="iname">محفظتي السعودية</span><span class="ival num">—</span><span class="ichg num">—</span>
       </div>
-      <div class="index-chip" id="chip-us" title="قيمة المحفظة الأمريكية والتغير اليومي">
+      <div class="index-chip" id="chip-us" title="قيمة المحفظة الأمريكية وأداؤها الكلي منذ الشراء">
         <span class="iname">محفظتي الأمريكية</span><span class="ival num">—</span><span class="ichg num">—</span>
       </div>
     </div>
@@ -416,8 +419,9 @@ nav.tabs .ico{width:16px;height:16px}
     <div class="field"><label>السهم</label><select id="divSymbol"></select></div>
     <div class="row2">
       <div class="field"><label>تاريخ التوزيع</label><input type="date" id="divDate"></div>
-      <div class="field"><label>المبلغ (بعملة السوق)</label><input type="number" id="divAmount" min="0" step="any"></div>
+      <div class="field"><label>التوزيع لكل سهم (بعملة السوق)</label><input type="number" id="divPerShare" min="0" step="any" placeholder="مثال: 1.00"></div>
     </div>
+    <div class="sell-preview" id="divPreview">اختر السهم وأدخل التوزيع لكل سهم</div>
     <div class="modal-actions">
       <button class="btn-primary" id="saveDivBtn">حفظ التوزيع</button>
       <button class="btn" data-close>إلغاء</button>
@@ -429,9 +433,14 @@ nav.tabs .ico{width:16px;height:16px}
 <div class="modal-overlay" id="cashModal">
   <div class="modal">
     <h3 id="cashModalTitle">إيداع نقدي</h3>
+    <div class="field"><label>الكاش</label>
+      <select id="cashMarket">
+        <option value="SA">الكاش السعودي (ر.س)</option>
+        <option value="US">الكاش الأمريكي ($)</option>
+      </select></div>
     <div class="row2">
       <div class="field"><label>التاريخ</label><input type="date" id="cashDate"></div>
-      <div class="field"><label>المبلغ (ريال سعودي)</label><input type="number" id="cashAmount" min="0" step="any"></div>
+      <div class="field"><label>المبلغ (بعملة الكاش المحدد)</label><input type="number" id="cashAmount" min="0" step="any"></div>
     </div>
     <div class="field"><label>ملاحظة</label><input id="cashNote"></div>
     <div class="modal-actions">
@@ -469,6 +478,43 @@ function normAr(t){ return t.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ة
 function moneyDual(v, market, rate){
   if(market !== 'US') return money(v, market);
   return `$${fmt.format(v)}<span class="sub-sar">≈ ${fmt.format(v*rate)} ر.س</span>`;
+}
+/* مدة الاحتفاظ بصيغة قابلة للقراءة: سنوات وأشهر وأيام */
+function humanDur(days){
+  days = Math.max(0, Math.round(days));
+  const y = Math.floor(days/365), m = Math.floor((days%365)/30), d = (days%365)%30;
+  // جمع عربي سليم: 1 مفرد، 2 مثنى، 3-10 جمع قلة، 11+ مفرد منصوب
+  const plur = (n, one, two, few, many) =>
+    n===1 ? one : n===2 ? two : (n>=3 && n<=10) ? `${n} ${few}` : `${n} ${many}`;
+  const yTxt = plur(y,'سنة','سنتان','سنوات','سنة');
+  const mTxt = plur(m,'شهر','شهران','أشهر','شهر');
+  const dTxt = plur(d,'يوم','يومان','أيام','يوم');
+  const parts = [];
+  if(y) parts.push(yTxt);
+  if(m) parts.push(mTxt);
+  if(!y && d) parts.push(dTxt);     // الأيام تظهر فقط تحت السنة لتبقى مختصرة
+  return parts.length ? parts.join(' و') : 'أقل من يوم';
+}
+/* أسماء الشركات السعودية بالعربية (الأولوية لها على أسماء Yahoo الإنجليزية) */
+const SA_NAMES = {
+  '2222':'أرامكو السعودية', '1120':'مصرف الراجحي', '2010':'سابك', '7010':'إس تي سي',
+  '1180':'البنك الأهلي السعودي', '1010':'بنك الرياض', '1150':'مصرف الإنماء', '1060':'البنك السعودي الأول',
+  '1080':'البنك العربي الوطني', '1140':'بنك البلاد', '1030':'البنك السعودي للاستثمار', '1050':'البنك السعودي الفرنسي',
+  '2082':'أكوا باور', '5110':'الكهرباء السعودية', '1211':'معادن', '2350':'كيان السعودية',
+  '2310':'سبكيم', '2020':'سابك للمغذيات الزراعية', '2380':'رابغ للتكرير', '2330':'المتقدمة',
+  '2280':'المراعي', '2050':'صافولا', '6010':'نادك', '2100':'وفرة',
+  '4190':'جرير', '4003':'إكسترا', '4001':'أسواق عبدالله العثيم', '4161':'بن داود',
+  '4013':'د. سليمان الحبيب', '4002':'المواساة', '4004':'دلة الصحية', '4005':'رعاية',
+  '8210':'بوبا العربية', '8010':'التعاونية', '8230':'تكافل الراجحي',
+  '7020':'زين السعودية', '7030':'موبايلي', '7202':'سلوشنز',
+  '4300':'دار الأركان', '4250':'جبل عمر', '4090':'طيبة للاستثمار', '4020':'الأندلس العقارية',
+  '3030':'أسمنت السعودية', '3020':'أسمنت اليمامة', '3010':'أسمنت العربية',
+  '4030':'البحري', '4200':'الدريس', '1830':'لجام للرياضة', '4263':'سال',
+  '2081':'الخريف لتقنية المياه', '4321':'المركز للتطوير العقاري', '1303':'صناعات كهربائية',
+};
+/* اسم العرض: عربي للسعودي إن وُجد في القاموس */
+function displayName(symbol, market, fallback){
+  return (market==='SA' && SA_NAMES[symbol]) ? SA_NAMES[symbol] : (fallback||'');
 }
 
 /* ============================================================================
@@ -597,14 +643,17 @@ class Portfolio {
   /* تكلفة السهم الواحد في صفقة شراء (شاملة العمولة) */
   lotCostPerShare(lot){ return (lot.qty * lot.buyPrice + (lot.commission||0)) / lot.qty; }
 
-  /* الرصيد النقدي الفعلي (بالريال):
+  /* الرصيد النقدي لكل سوق بعملته (SA بالريال، US بالدولار)،
+     و'ALL' يدمج السوقين بالريال:
      الإيداعات والسحوبات + التوزيعات + متحصلات البيع − تكاليف الشراء */
-  cashBalance(){
+  cashBalance(market='ALL'){
+    if(market==='ALL')
+      return this.cashBalance('SA') + this.toSAR(this.cashBalance('US'),'US');
     let c = 0;
-    for(const m of this.s.cashMoves) c += m.amount;
-    for(const d of this.s.dividends) c += this.toSAR(d.amount, d.market);
-    for(const x of this.s.sales) c += this.toSAR(x.qty*x.sellPrice - (x.sellCommission||0), x.market);
-    for(const l of this.s.lots) c -= this.toSAR(l.qty*l.buyPrice + (l.commission||0), l.market);
+    for(const m of this.s.cashMoves) if((m.market||'SA')===market) c += m.amount;
+    for(const d of this.s.dividends) if(d.market===market) c += d.amount;
+    for(const x of this.s.sales) if(x.market===market) c += x.qty*x.sellPrice - (x.sellCommission||0);
+    for(const l of this.s.lots) if(l.market===market) c -= l.qty*l.buyPrice + (l.commission||0);
     return c;
   }
 
@@ -631,7 +680,10 @@ class Portfolio {
       p.price = q ? q.price : null;
       p.prevClose = q ? q.prevClose : null;
       p.priceTs = q ? q.ts : null;
-      if(q && q.name && !p.name) p.name = q.name;
+      // الاسم العربي للشركات السعودية له الأولوية، ثم اسم Yahoo
+      const arName = displayName(p.symbol, p.market);
+      if(arName) p.name = arName;
+      else if(q && q.name && !p.name) p.name = q.name;
       p.value = p.price != null ? p.qty * p.price : null;
       p.pnl   = p.value != null ? p.value - p.cost : null;
       p.pnlPct= p.pnl  != null ? p.pnl / p.cost * 100 : null;
@@ -687,8 +739,8 @@ class Portfolio {
       if(s.pnl>=0) realizedP += conv(s.pnl,s.market); else realizedL += conv(-s.pnl,s.market); }
     let divs=0;
     for(const d of this.s.dividends){ if(inScope(d.market)) divs += conv(d.amount,d.market); }
-    // الرصيد النقدي الفعلي (موحّد بالريال لكل النطاقات)
-    const cash = this.cashBalance();
+    // الرصيد النقدي لنفس النطاق وبنفس عملته
+    const cash = this.cashBalance(market);
     return {
       value, cost, unrealized: value-cost,
       unrealizedPct: cost>0 ? (value-cost)/cost*100 : 0,
@@ -904,8 +956,8 @@ class UI {
       ['الأرباح المحققة', m(st.realizedP), 1],
       ['الخسائر المحققة', m(st.realizedL), st.realizedL>0?-1:0],
       ['إجمالي التوزيعات', m(st.divs), null],
-      ['الرصيد النقدي', sar(pf.stats('ALL').cash), null],
-      ['صافي الثروة', sar(pf.stats('ALL').netWorth), null],
+      [market==='SA'?'الكاش السعودي':market==='US'?'الكاش الأمريكي':'الرصيد النقدي الكلي', m(st.cash), st.cash<0?-1:null],
+      ['صافي الثروة', m(st.netWorth), null],
     ];
     const ts = this.tableState[view];
     let pos = pf.positions(market);
@@ -933,7 +985,7 @@ class UI {
         <td><span class="mkt-badge mkt-${p.market}">${p.market==='SA'?'سعودي':'أمريكي'}</span></td>
         <td class="num">${fmt0.format(p.qty)}</td>
         <td class="num">${p.firstBuy}</td>
-        <td class="num">${p.holdDays} يوم</td>
+        <td class="num" title="${p.holdDays} يوم">${humanDur(p.holdDays)}</td>
         <td class="num">${fmt.format(p.avgCost)}</td>
         <td class="num">${p.price!=null?fmt.format(p.price):'—'}${stale?'<span class="stale-tag">سعر مخزّن</span>':''}</td>
         <td class="num">${p.value!=null?moneyDual(p.value,p.market,pf.rate):'—'}</td>
@@ -1043,47 +1095,54 @@ class UI {
     ].map(c=>`<div class="card"><div class="clabel">${c[0]}</div><div class="cval pos">${c[1]}</div></div>`).join('');
     const divs = [...s.dividends].sort((a,b)=>b.date.localeCompare(a.date));
     document.getElementById('divTable').innerHTML = divs.length===0 ? '<div class="empty-msg">لا توجد توزيعات</div>' : `
-      <table><thead><tr><th>السهم</th><th>السوق</th><th>تاريخ التوزيع</th><th>المبلغ</th><th>بالريال</th><th></th></tr></thead><tbody>
+      <table><thead><tr><th>السهم</th><th>السوق</th><th>تاريخ التوزيع</th><th>التوزيع/سهم</th><th>عدد الأسهم</th><th>الإجمالي</th><th>بالريال</th><th></th></tr></thead><tbody>
       ${divs.map(d=>`<tr>
         <td><span class="sym-badge">${d.symbol}</span></td>
         <td><span class="mkt-badge mkt-${d.market}">${d.market==='SA'?'سعودي':'أمريكي'}</span></td>
         <td class="num">${d.date}</td>
+        <td class="num">${d.perShare!=null?fmt.format(d.perShare):'—'}</td>
+        <td class="num">${d.qty!=null?fmt0.format(d.qty):'—'}</td>
         <td class="num pos">${money(d.amount,d.market)}</td>
         <td class="num">${sar(pf.toSAR(d.amount,d.market))}</td>
         <td><button class="btn btn-sm" data-deldiv="${d.id}" style="color:var(--red)">حذف</button></td>
       </tr>`).join('')}</tbody></table>`;
   }
 
-  /* ---------- الرصيد النقدي ---------- */
+  /* ---------- الرصيد النقدي (مفصول لكل سوق بعملته) ---------- */
   renderCash(){
-    const st = this.app.portfolio.stats('ALL');
+    const pf = this.app.portfolio;
+    const st = pf.stats('ALL');
     const net = st.realizedP - st.realizedL + st.divs;
+    const saCash = pf.cashBalance('SA'), usCash = pf.cashBalance('US');
     document.getElementById('cashCards').innerHTML = [
-      ['الرصيد النقدي الحالي', sar(st.cash), null],
+      ['الكاش السعودي', sar(saCash), saCash<0?-1:null],
+      ['الكاش الأمريكي', moneyDual(usCash,'US',pf.rate), usCash<0?-1:null],
+      ['الرصيد النقدي الكلي', sar(st.cash), st.cash<0?-1:null],
       ['الأرباح المحققة', sar(st.realizedP), 1],
       ['الخسائر المحققة', sar(st.realizedL), st.realizedL>0?-1:0],
       ['إجمالي التوزيعات', sar(st.divs), null],
       ['صافي الربح', sar(net), net],
     ].map(c=>`<div class="card"><div class="clabel">${c[0]}</div><div class="cval ${c[2]==null?'':cls(c[2])}">${c[1]}</div></div>`).join('');
-    // دمج الحركات اليدوية مع الحركات التلقائية (نتائج البيع + التوزيعات) في سجل واحد
-    const s = this.app.store.state, pf = this.app.portfolio;
+    // سجل موحد: الحركات اليدوية + الشراء والبيع والتوزيعات التلقائية، كلٌّ بعملة سوقه
+    const s = this.app.store.state;
     const moves = [
-      ...s.cashMoves.map(c=>({date:c.date, type:c.amount>=0?'إيداع':'سحب', amount:c.amount, note:c.note||'', id:c.id})),
-      ...s.lots.map(l=>({date:l.buyDate, type:'شراء '+l.symbol,
-        amount:-pf.toSAR(l.qty*l.buyPrice+(l.commission||0), l.market),
+      ...s.cashMoves.map(c=>({date:c.date, market:c.market||'SA', type:c.amount>=0?'إيداع':'سحب', amount:c.amount, note:c.note||'', id:c.id})),
+      ...s.lots.map(l=>({date:l.buyDate, market:l.market, type:'شراء '+l.symbol,
+        amount:-(l.qty*l.buyPrice+(l.commission||0)),
         note:`${fmt0.format(l.qty)} سهم — خُصم تلقائياً`})),
-      ...s.sales.map(x=>({date:x.sellDate, type:'بيع '+x.symbol,
-        amount:pf.toSAR(x.qty*x.sellPrice-(x.sellCommission||0), x.market),
+      ...s.sales.map(x=>({date:x.sellDate, market:x.market, type:'بيع '+x.symbol,
+        amount:x.qty*x.sellPrice-(x.sellCommission||0),
         note:`متحصلات بيع ${fmt0.format(x.qty)} سهم (${x.pnl>=0?'ربح':'خسارة'} ${money(x.pnl,x.market)}) — أُضيف تلقائياً`})),
-      ...s.dividends.map(d=>({date:d.date, type:'توزيع '+d.symbol, amount:pf.toSAR(d.amount,d.market),
+      ...s.dividends.map(d=>({date:d.date, market:d.market, type:'توزيع '+d.symbol, amount:d.amount,
         note:'توزيع نقدي — أُضيف تلقائياً'})),
     ].sort((a,b)=>b.date.localeCompare(a.date));
     document.getElementById('cashTable').innerHTML = moves.length===0 ? '<div class="empty-msg">لا توجد حركات بعد</div>' : `
-      <table style="min-width:560px"><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ (ر.س)</th><th>ملاحظة</th><th></th></tr></thead><tbody>
+      <table style="min-width:640px"><thead><tr><th>التاريخ</th><th>الكاش</th><th>النوع</th><th>المبلغ</th><th>ملاحظة</th><th></th></tr></thead><tbody>
       ${moves.map(c=>`<tr>
         <td class="num">${c.date}</td>
+        <td><span class="mkt-badge mkt-${c.market}">${c.market==='SA'?'سعودي':'أمريكي'}</span></td>
         <td>${c.type}</td>
-        <td class="num ${cls(c.amount)}">${sar(c.amount)}</td>
+        <td class="num ${cls(c.amount)}">${money(c.amount, c.market)}</td>
         <td>${c.note}</td>
         <td>${c.id?`<button class="btn btn-sm" data-delcash="${c.id}" style="color:var(--red)">حذف</button>`:''}</td>
       </tr>`).join('')}</tbody></table>`;
@@ -1098,23 +1157,17 @@ class UI {
     else if(v==='cash') this.renderCash();
   }
 
-  /* ---------- شريط أداء المحفظتين في الترويسة ---------- */
+  /* ---------- شريط الأداء الكلي للمحفظتين في الترويسة ---------- */
   renderHeaderPerf(){
     const pf = this.app.portfolio;
     const set = (chipId, market) => {
       const chip = document.getElementById(chipId);
-      let val=0, prev=0, priced=false;
-      for(const p of pf.positions(market)){
-        if(p.price!=null && p.prevClose!=null){
-          val += p.qty*p.price; prev += p.qty*p.prevClose; priced=true;
-        }
-      }
+      const st = pf.stats(market);
       const ival = chip.querySelector('.ival'), ichg = chip.querySelector('.ichg');
-      if(!priced){ ival.textContent='—'; ichg.textContent='—'; return; }
-      const chg = val - prev, chgPct = prev>0 ? chg/prev*100 : 0;
-      ival.textContent = market==='US' ? '$'+fmt.format(val) : fmt.format(val)+' ر.س';
-      ichg.textContent = `${chg>=0?'▲':'▼'} ${fmt.format(Math.abs(chg))} (${pct(chgPct)})`;
-      ichg.className = 'ichg num ' + cls(chg);
+      if(!st.priced || st.cost<=0){ ival.textContent='—'; ichg.textContent='—'; return; }
+      ival.textContent = market==='US' ? '$'+fmt.format(st.value) : fmt.format(st.value)+' ر.س';
+      ichg.textContent = `${st.unrealized>=0?'▲':'▼'} ${fmt.format(Math.abs(st.unrealized))} (${pct(st.unrealizedPct)})`;
+      ichg.className = 'ichg num ' + cls(st.unrealized);
     };
     set('chip-sa','SA'); set('chip-us','US');
   }
@@ -1169,17 +1222,23 @@ class App {
      يحافظ على نفس الرصيد لحظة الترقية ثم تنساب الحركات الجديدة طبيعياً. */
   migrateCash(){
     const s = this.store.state;
-    if(s.meta.cashMigrated) return;
-    const pf = this.portfolio;
-    let realized=0, divs=0, manual=0;
-    for(const x of s.sales) realized += pf.toSAR(x.pnl, x.market);
-    for(const d of s.dividends) divs += pf.toSAR(d.amount, d.market);
-    for(const c of s.cashMoves) manual += c.amount;
-    const oldCash = realized + divs + manual;
-    const delta = oldCash - pf.cashBalance();
-    if(Math.abs(delta) > 0.005)
-      s.cashMoves.push({id:uid(), date:todayStr(), amount:delta, note:'رصيد افتتاحي (تسوية تلقائية)'});
-    s.meta.cashMigrated = true;
+    if(s.meta.cashSplit) return;
+    // إزالة تسويات النسخ السابقة الموحدة وإسناد سوق افتراضي للحركات اليدوية القديمة
+    s.cashMoves = s.cashMoves.filter(c=>!(c.note||'').includes('رصيد افتتاحي (تسوية تلقائية)'));
+    for(const c of s.cashMoves) if(!c.market) c.market = 'SA';
+    // رصيد افتتاحي لكل سوق بعملته بحيث يكون رصيد السوق = صافي المحقق فيه
+    for(const M of ['SA','US']){
+      let realized=0, proceeds=0, costs=0;
+      for(const x of s.sales) if(x.market===M){
+        realized += x.pnl;
+        proceeds += x.qty*x.sellPrice - (x.sellCommission||0);
+      }
+      for(const l of s.lots) if(l.market===M) costs += l.qty*l.buyPrice + (l.commission||0);
+      const opening = realized - (proceeds - costs);
+      if(Math.abs(opening) > 0.005)
+        s.cashMoves.push({id:uid(), date:todayStr(), market:M, amount:opening, note:'رصيد افتتاحي (تسوية تلقائية)'});
+    }
+    s.meta.cashSplit = true;
     this.store.save();
   }
   clearDemoData(){
@@ -1399,6 +1458,13 @@ class App {
     // التوزيعات
     $('addDivBtn').addEventListener('click', ()=> this.openDivModal());
     $('saveDivBtn').addEventListener('click', ()=> this.saveDividend());
+    $('divPerShare').addEventListener('input', ()=> this.updateDivPreview());
+    $('divSymbol').addEventListener('change', ()=> this.updateDivPreview());
+    // فتح التقويم مباشرة عند النقر على أي حقل تاريخ
+    document.addEventListener('click', e=>{
+      const d = e.target.closest('input[type="date"]');
+      if(d && d.showPicker){ try{ d.showPicker(); }catch(_){} }
+    });
     // الرصيد النقدي
     $('depositBtn').addEventListener('click', ()=> this.openCashModal(1));
     $('withdrawBtn').addEventListener('click', ()=> this.openCashModal(-1));
@@ -1447,22 +1513,22 @@ class App {
     this.updateBuyPreview();
     this.ui.openModal('buyModal');
   }
-  /* معاينة حية: الرصيد المتاح + تكلفة الصفقة + المتبقي بعد الشراء */
+  /* معاينة حية: رصيد كاش السوق المحدد + تكلفة الصفقة + المتبقي بعد الشراء */
   updateBuyPreview(){
     const g = id => document.getElementById(id).value;
     const box = document.getElementById('buyPreview');
-    const cash = this.portfolio.cashBalance();
     const market = g('buyMarket');
+    const mktName = market==='SA' ? 'السعودي' : 'الأمريكي';
+    const cash = this.portfolio.cashBalance(market);
     const qty = parseFloat(g('buyQty')), price = parseFloat(g('buyPrice'));
     const comm = parseFloat(g('buyComm'))||0;
-    let html = `الرصيد النقدي المتاح: <b class="num ${cls(cash)}">${sar(cash)}</b>`;
+    let html = `الكاش ${mktName} المتاح: <b class="num ${cls(cash)}">${money(cash, market)}</b>`;
     if(qty>0 && price>0){
       const cost = qty*price + comm;
-      const costSar = this.portfolio.toSAR(cost, market);
-      const after = cash - costSar;
-      html += `<br>إجمالي تكلفة الصفقة: <b class="num">${money(cost, market)}${market==='US'?` <span style="color:var(--text2);font-weight:500">(≈ ${sar(costSar)})</span>`:''}</b>
-        <br>المتبقي بعد الشراء: <b class="num ${cls(after)}">${sar(after)}</b>`;
-      if(after < -0.005) html += `<br><b style="color:var(--red)">الرصيد النقدي غير كافٍ لهذه الصفقة</b>`;
+      const after = cash - cost;
+      html += `<br>إجمالي تكلفة الصفقة: <b class="num">${money(cost, market)}</b>
+        <br>المتبقي بعد الشراء: <b class="num ${cls(after)}">${money(after, market)}</b>`;
+      if(after < -0.005) html += `<br><b style="color:var(--red)">الكاش ${mktName} غير كافٍ لهذه الصفقة</b>`;
     } else {
       html += '<br>أدخل الكمية والسعر لعرض التكلفة';
     }
@@ -1475,18 +1541,20 @@ class App {
     const qty = parseFloat(g('buyQty')), price = parseFloat(g('buyPrice'));
     const date = g('buyDate'), comm = parseFloat(g('buyComm'))||0;
     if(!symbol || !(qty>0) || !(price>0) || !date) return this.ui.toast('أكمل الحقول المطلوبة (رمز، كمية، سعر، تاريخ)', false);
-    // منع الشراء إذا كان الرصيد النقدي أقل من تكلفة الصفقة
-    const costSar = this.portfolio.toSAR(qty*price + comm, market);
-    if(costSar > this.portfolio.cashBalance() + 0.005)
-      return this.ui.toast('الرصيد النقدي غير كافٍ — أودع مبلغاً من تبويب الرصيد النقدي أولاً', false);
+    // منع الشراء إذا كان كاش السوق المحدد أقل من تكلفة الصفقة
+    const cost = qty*price + comm;
+    if(cost > this.portfolio.cashBalance(market) + 0.005)
+      return this.ui.toast(`الكاش ${market==='SA'?'السعودي':'الأمريكي'} غير كافٍ — أودع مبلغاً من تبويب الرصيد النقدي أولاً`, false);
     const lot = {id:uid(), symbol, name:g('buyName').trim(), market, qty, remainingQty:qty,
       buyPrice:price, buyDate:date, commission:comm, notes:g('buyNotes').trim()};
     this.store.state.lots.push(lot);
     this.store.save();
     this.ui.closeModal('buyModal');
     this.ui.render();
-    this.ui.toast(`تمت إضافة صفقة ${symbol} وخُصم ${sar(costSar)} من الرصيد النقدي`);
-    // جلب السعر والاسم تلقائياً في الخلفية
+    this.ui.toast(`تمت إضافة صفقة ${symbol} وخُصم ${money(cost, market)} من الكاش ${market==='SA'?'السعودي':'الأمريكي'}`);
+    // الاسم العربي فوراً للسعودي، ثم جلب السعر والاسم من Yahoo في الخلفية
+    const arName = displayName(symbol, market);
+    if(arName && !lot.name){ lot.name = arName; this.store.save(); this.ui.render(); }
     this.prices.getQuote(this.prices.yahooSymbol(symbol, market)).then(q=>{
       if(!lot.name && q.name){ lot.name = q.name; }
       this.store.save(); this.ui.render();
@@ -1532,39 +1600,56 @@ class App {
       const sale = this.portfolio.sell({symbol:ctx.symbol, market:ctx.market, qty, sellPrice:price, sellDate:date, sellCommission:comm});
       this.ui.closeModal('sellModal');
       this.ui.render();
-      const proceeds = this.portfolio.toSAR(sale.qty*sale.sellPrice - sale.sellCommission, sale.market);
+      const proceeds = sale.qty*sale.sellPrice - sale.sellCommission;
+      const cashName = sale.market==='SA' ? 'السعودي' : 'الأمريكي';
       this.ui.toast(sale.pnl>=0
-        ? `صفقة رابحة: ${money(sale.pnl, sale.market)} — أُضيف ${sar(proceeds)} للرصيد النقدي`
-        : `صفقة خاسرة: ${money(sale.pnl, sale.market)} — أُضيف ${sar(proceeds)} للرصيد النقدي`, sale.pnl>=0);
+        ? `صفقة رابحة: ${money(sale.pnl, sale.market)} — أُضيف ${money(proceeds, sale.market)} للكاش ${cashName}`
+        : `صفقة خاسرة: ${money(sale.pnl, sale.market)} — أُضيف ${money(proceeds, sale.market)} للكاش ${cashName}`, sale.pnl>=0);
     }catch(e){ this.ui.toast(e.message, false); }
   }
 
-  /* ---------- التوزيعات ---------- */
+  /* ---------- التوزيعات: المستخدم يدخل التوزيع لكل سهم والتطبيق يضرب في الكمية ---------- */
+  ownedQty(symbol, market){
+    const p = this.portfolio.positions(market).find(x=>x.symbol===symbol);
+    return p ? p.qty : 0;
+  }
   openDivModal(){
     const sel = document.getElementById('divSymbol');
+    // الأسهم المملوكة حالياً فقط (التوزيع يُحسب على الكمية المملوكة)
     const pos = this.portfolio.positions('ALL');
-    // قائمة الأسهم الحالية + أي أسهم سبق تداولها
-    const seen = new Set();
-    const opts = [];
-    for(const p of pos){ const k = p.market+':'+p.symbol; if(!seen.has(k)){ seen.add(k); opts.push(p); } }
-    for(const l of this.store.state.lots){ const k = l.market+':'+l.symbol; if(!seen.has(k)){ seen.add(k); opts.push(l); } }
-    sel.innerHTML = opts.map(p=>`<option value="${p.market}:${p.symbol}">${p.symbol} — ${p.name||''} (${p.market==='SA'?'سعودي':'أمريكي'})</option>`).join('')
-      || '<option value="">لا توجد أسهم</option>';
+    sel.innerHTML = pos.map(p=>`<option value="${p.market}:${p.symbol}">${p.symbol} — ${p.name||''} (${p.market==='SA'?'سعودي':'أمريكي'}) — تملك ${fmt0.format(p.qty)} سهم</option>`).join('')
+      || '<option value="">لا توجد أسهم مملوكة</option>';
     document.getElementById('divDate').value = todayStr();
-    document.getElementById('divAmount').value = '';
+    document.getElementById('divPerShare').value = '';
+    this.updateDivPreview();
     this.ui.openModal('divModal');
+  }
+  updateDivPreview(){
+    const box = document.getElementById('divPreview');
+    const v = document.getElementById('divSymbol').value;
+    const ps = parseFloat(document.getElementById('divPerShare').value);
+    if(!v){ box.textContent = 'لا توجد أسهم مملوكة'; return; }
+    const [market, symbol] = v.split(':');
+    const qty = this.ownedQty(symbol, market);
+    if(!(ps>0)){ box.innerHTML = `تملك <b class="num">${fmt0.format(qty)}</b> سهم من ${symbol} — أدخل التوزيع لكل سهم`; return; }
+    const total = qty * ps;
+    box.innerHTML = `<b class="num">${fmt0.format(qty)}</b> سهم × <b class="num">${fmt.format(ps)}</b> =
+      إجمالي التوزيع: <b class="num pos">${money(total, market)}</b> — سيُضاف للكاش ${market==='SA'?'السعودي':'الأمريكي'}`;
   }
   saveDividend(){
     const v = document.getElementById('divSymbol').value;
     const date = document.getElementById('divDate').value;
-    const amount = parseFloat(document.getElementById('divAmount').value);
-    if(!v || !date || !(amount>0)) return this.ui.toast('أكمل بيانات التوزيع', false);
+    const ps = parseFloat(document.getElementById('divPerShare').value);
+    if(!v || !date || !(ps>0)) return this.ui.toast('أكمل بيانات التوزيع', false);
     const [market, symbol] = v.split(':');
-    this.store.state.dividends.push({id:uid(), symbol, market, date, amount});
+    const qty = this.ownedQty(symbol, market);
+    if(!(qty>0)) return this.ui.toast('لا تملك أسهماً من هذا الرمز حالياً', false);
+    const amount = qty * ps;
+    this.store.state.dividends.push({id:uid(), symbol, market, date, amount, perShare:ps, qty});
     this.store.save();
     this.ui.closeModal('divModal');
     this.ui.render(); this.ui.renderDividends();
-    this.ui.toast('تمت إضافة التوزيع وإضافته للرصيد النقدي');
+    this.ui.toast(`أُضيف توزيع ${money(amount, market)} (${fmt.format(ps)} × ${fmt0.format(qty)} سهم) للكاش ${market==='SA'?'السعودي':'الأمريكي'}`);
   }
 
   /* ---------- الإيداع والسحب ---------- */
@@ -1579,8 +1664,9 @@ class App {
   saveCashMove(){
     const amount = parseFloat(document.getElementById('cashAmount').value);
     const date = document.getElementById('cashDate').value;
+    const market = document.getElementById('cashMarket').value;
     if(!(amount>0) || !date) return this.ui.toast('أدخل المبلغ والتاريخ', false);
-    this.store.state.cashMoves.push({id:uid(), date, amount: amount*this._cashSign,
+    this.store.state.cashMoves.push({id:uid(), date, market, amount: amount*this._cashSign,
       note: document.getElementById('cashNote').value.trim()});
     this.store.save();
     this.ui.closeModal('cashModal');
