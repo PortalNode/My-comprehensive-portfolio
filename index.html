@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>محفظتي | لوحة إدارة المحفظة الاستثمارية</title>
+<!-- Chart.js — المكتبة الخارجية الوحيدة -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   متغيرات الألوان — الوضع الداكن افتراضي
+   ============================================================ */
+:root{
+  --bg:#0d1117; --bg2:#161b22; --bg3:#1c2330; --border:#2a3343;
+  --text:#e6edf3; --text2:#8b97a8; --accent:#4f8cff; --accent2:#7c5cff;
+  --green:#26c281; --red:#f25f5c; --gold:#f0b429;
+  --card-shadow:0 2px 10px rgba(0,0,0,.35);
+  --radius:14px;
+}
+body.light{
+  --bg:#f4f6fa; --bg2:#ffffff; --bg3:#eef1f6; --border:#dde3ec;
+  --text:#1c2330; --text2:#5b6677; --card-shadow:0 2px 10px rgba(20,40,80,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Tajawal',-apple-system,'Segoe UI',Tahoma,sans-serif;
+  background:var(--bg); color:var(--text); min-height:100vh;
+  font-size:15px; line-height:1.55;
+}
+/* الأرقام دائماً بصيغة لاتينية */
+body{font-variant-numeric:tabular-nums lining-nums}
+
+/* ============================================================
+   الترويسة وشريط المؤشرات
+   ============================================================ */
+header{
+  background:linear-gradient(135deg,var(--bg2),var(--bg3));
+  border-bottom:1px solid var(--border);
+  padding:14px 20px; position:sticky; top:0; z-index:50;
+}
+.header-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-size:21px;font-weight:800;display:flex;align-items:center;gap:8px}
+.logo .dot{width:11px;height:11px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.indices{display:flex;gap:10px;flex-wrap:wrap;flex:1}
+.index-chip{
+  background:var(--bg); border:1px solid var(--border); border-radius:10px;
+  padding:6px 12px; display:flex; align-items:center; gap:8px; font-size:13px;
+}
+.index-chip .iname{color:var(--text2);font-weight:700}
+.index-chip .ival{font-weight:800}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.last-update{font-size:12px;color:var(--text2)}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-inline-start:4px}
+.status-dot.ok{background:var(--green)} .status-dot.err{background:var(--red)} .status-dot.wait{background:var(--gold)}
+
+/* ============================================================
+   الأزرار والحقول
+   ============================================================ */
+button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;font-size:14px;transition:.15s}
+.btn{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:8px 16px;font-weight:700}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:9px 18px;font-weight:800;border:none}
+.btn-primary:hover{filter:brightness(1.12)}
+.btn-green{background:var(--green);color:#06251a;font-weight:800;padding:5px 14px}
+.btn-red{background:var(--red);color:#fff;font-weight:800;padding:5px 14px}
+.btn-sm{padding:4px 10px;font-size:12.5px}
+.btn-icon{padding:8px 11px}
+input,select,textarea{
+  font-family:inherit;background:var(--bg);border:1px solid var(--border);
+  color:var(--text);border-radius:10px;padding:9px 12px;font-size:14px;width:100%;
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+label{font-size:13px;color:var(--text2);font-weight:700;display:block;margin-bottom:5px}
+.field{margin-bottom:13px}
+.switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text2)}
+.switch input{width:auto}
+
+/* ============================================================
+   التبويبات
+   ============================================================ */
+nav.tabs{
+  display:flex;gap:6px;padding:12px 20px 0;flex-wrap:wrap;
+  background:var(--bg);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:40;
+}
+nav.tabs button{
+  background:transparent;color:var(--text2);padding:10px 16px;font-weight:700;
+  border-radius:10px 10px 0 0;border-bottom:3px solid transparent;font-size:14.5px;
+}
+nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--bg2)}
+nav.tabs button:hover{color:var(--text)}
+main{padding:20px;max-width:1400px;margin:0 auto}
+.view{display:none}.view.active{display:block}
+
+/* ============================================================
+   بطاقات الإحصائيات (Dashboard)
+   ============================================================ */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:12px;margin-bottom:20px}
+.card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--card-shadow);
+}
+.card .clabel{font-size:12.5px;color:var(--text2);font-weight:700;margin-bottom:4px}
+.card .cval{font-size:19px;font-weight:800;direction:ltr;text-align:right}
+.card .csub{font-size:12px;color:var(--text2);margin-top:2px;direction:ltr;text-align:right}
+.pos{color:var(--green)} .neg{color:var(--red)}
+
+/* ============================================================
+   الجداول
+   ============================================================ */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--card-shadow);margin-bottom:20px;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.panel-head h2{font-size:16.5px;font-weight:800}
+.panel-body{padding:0}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toolbar input,.toolbar select{width:auto;min-width:130px;padding:7px 11px;font-size:13.5px}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:900px}
+th{
+  text-align:right;padding:10px 12px;color:var(--text2);font-size:12px;font-weight:700;
+  border-bottom:1px solid var(--border);background:var(--bg3);white-space:nowrap;
+}
+td{padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(79,140,255,.05)}
+.num{direction:ltr;text-align:right;font-weight:700}
+.sym-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:3px 9px;font-weight:800;font-size:12.5px;direction:ltr;
+}
+.mkt-badge{font-size:11.5px;padding:2px 9px;border-radius:20px;font-weight:700}
+.mkt-SA{background:rgba(38,194,129,.15);color:var(--green)}
+.mkt-US{background:rgba(79,140,255,.15);color:var(--accent)}
+/* شارة عدد دفعات الشراء بجانب رمز السهم */
+.lot-badge{
+  display:inline-block;margin-inline-start:6px;font-size:10px;padding:1.5px 7px;
+  border-radius:20px;background:rgba(124,92,255,.16);color:var(--accent2);
+  font-weight:700;vertical-align:1px;white-space:nowrap;
+}
+.empty-msg{padding:34px;text-align:center;color:var(--text2);font-size:14px}
+.stale-tag{font-size:10.5px;color:var(--gold);display:block}
+.sub-sar{display:block;font-size:10.5px;color:var(--text2);font-weight:500}
+.rec-summary{padding:12px 18px;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--text2);display:flex;gap:18px;flex-wrap:wrap}
+.rec-summary b{color:var(--text)}
+/* أيقونات SVG احترافية بدل الإيموجي */
+.ico{width:15px;height:15px;vertical-align:-2.5px;margin-inline-end:5px;flex-shrink:0}
+nav.tabs .ico{width:16px;height:16px}
+
+/* تبويبات فرعية داخل السجلات */
+.subtabs{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px 0}
+.subtabs button{background:var(--bg3);color:var(--text2);padding:7px 15px;border-radius:20px;font-weight:700;font-size:13px;border:1px solid var(--border)}
+.subtabs button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ============================================================
+   النوافذ المنبثقة (Modals)
+   ============================================================ */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+  z-index:100;align-items:flex-start;justify-content:center;padding:30px 14px;overflow-y:auto;
+  backdrop-filter:blur(3px);
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--bg2);border:1px solid var(--border);border-radius:16px;
+  width:100%;max-width:460px;padding:22px;box-shadow:0 12px 50px rgba(0,0,0,.5);
+  animation:pop .18s ease;
+}
+@keyframes pop{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+.modal h3{font-size:17px;font-weight:800;margin-bottom:16px}
+.modal .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-start;margin-top:16px}
+.sell-preview{
+  background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+  padding:11px 14px;font-size:13.5px;margin-top:4px;
+}
+
+/* ============================================================
+   الرسوم البيانية
+   ============================================================ */
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px}
+.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--card-shadow)}
+.chart-box h3{font-size:14.5px;font-weight:800;margin-bottom:12px;color:var(--text2)}
+.chart-box .ch{position:relative;height:260px}
+
+/* مقارنة الأداء */
+.perf-table td,.perf-table th{text-align:right}
+
+/* الإعدادات */
+.readme-box textarea{min-height:300px;font-family:Menlo,monospace;font-size:12.5px;direction:ltr;text-align:left;line-height:1.6}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+
+/* إشعارات Toast */
+#toast{
+  position:fixed;bottom:22px;right:50%;transform:translateX(50%);
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  padding:11px 22px;border-radius:12px;font-weight:700;font-size:14px;
+  box-shadow:0 6px 24px rgba(0,0,0,.4);z-index:200;display:none;
+}
+
+/* ============================================================
+   الجوال
+   ============================================================ */
+@media (max-width:720px){
+  main{padding:12px}
+  header{padding:10px 12px}
+  .logo{font-size:17px}
+  .cards{grid-template-columns:repeat(2,1fr);gap:8px}
+  .card .cval{font-size:16px}
+  nav.tabs{padding:8px 8px 0;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  nav.tabs button{white-space:nowrap;padding:9px 12px;font-size:13px}
+  .panel-head{padding:12px}
+  .toolbar input,.toolbar select{min-width:100px;flex:1}
+  .modal .row2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= الترويسة ================= -->
+<header>
+  <div class="header-row">
+    <div class="logo"><span class="dot"></span> محفظتي</div>
+    <div class="indices">
+      <div class="index-chip" id="chip-sa" title="قيمة المحفظة السعودية والتغير اليومي">
+        <span class="iname">محفظتي السعودية</span><span class="ival num">—</span><span class="ichg num">—</span>
+      </div>
+      <div class="index-chip" id="chip-us" title="قيمة المحفظة الأمريكية والتغير اليومي">
+        <span class="iname">محفظتي الأمريكية</span><span class="ival num">—</span><span class="ichg num">—</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="last-update">آخر تحديث: <span id="lastUpdate">—</span><span class="status-dot wait" id="statusDot"></span></span>
+      <label class="switch"><input type="checkbox" id="autoRefreshToggle" checked> تلقائي</label>
+      <button class="btn btn-icon" id="refreshBtn" title="تحديث الأسعار"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>تحديث</button>
+      <button class="btn btn-icon" id="themeBtn" title="تبديل المظهر"><svg class="ico" style="margin-inline-end:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<!-- ================= التبويبات ================= -->
+<nav class="tabs" id="mainTabs">
+  <button data-view="sa" class="active"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>المحفظة السعودية</button>
+  <button data-view="us"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>المحفظة الأمريكية</button>
+  <button data-view="all"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>المحفظة الشاملة</button>
+  <button data-view="records"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>سجل الصفقات</button>
+  <button data-view="dividends"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>التوزيعات النقدية</button>
+  <button data-view="cash"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>الرصيد النقدي</button>
+  <button data-view="compare"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>مقارنة الأداء</button>
+  <button data-view="charts"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>الرسوم البيانية</button>
+  <button data-view="settings"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>الإعدادات</button>
+</nav>
+
+<main>
+
+<!-- ===== محافظ: سعودية / أمريكية / شاملة (قالب موحد يُبنى بالجافاسكربت) ===== -->
+<section class="view active" id="view-sa"></section>
+<section class="view" id="view-us"></section>
+<section class="view" id="view-all"></section>
+
+<!-- ===== سجل الصفقات ===== -->
+<section class="view" id="view-records">
+  <div class="panel">
+    <div class="panel-head"><h2>سجل الصفقات</h2></div>
+    <div class="subtabs" id="recordTabs">
+      <button data-rec="buys" class="active">سجل المشتريات</button>
+      <button data-rec="sells">سجل المبيعات</button>
+      <button data-rec="wins">الصفقات الرابحة</button>
+      <button data-rec="losses">الصفقات الخاسرة</button>
+    </div>
+    <div class="table-wrap" id="recordsTable"></div>
+  </div>
+</section>
+
+<!-- ===== التوزيعات النقدية ===== -->
+<section class="view" id="view-dividends">
+  <div class="cards" id="divCards"></div>
+  <div class="panel">
+    <div class="panel-head">
+      <h2>سجل التوزيعات النقدية</h2>
+      <button class="btn-primary" id="addDivBtn">+ إضافة توزيع جديد</button>
+    </div>
+    <div class="table-wrap" id="divTable"></div>
+  </div>
+</section>
+
+<!-- ===== الرصيد النقدي ===== -->
+<section class="view" id="view-cash">
+  <div class="cards" id="cashCards"></div>
+  <div class="panel">
+    <div class="panel-head">
+      <h2>حركات الرصيد النقدي</h2>
+      <div class="toolbar">
+        <button class="btn btn-sm" id="depositBtn">+ إيداع</button>
+        <button class="btn btn-sm" id="withdrawBtn">− سحب</button>
+      </div>
+    </div>
+    <div class="table-wrap" id="cashTable"></div>
+  </div>
+</section>
+
+<!-- ===== مقارنة الأداء ===== -->
+<section class="view" id="view-compare">
+  <div class="panel">
+    <div class="panel-head"><h2>مقارنة أداء المحفظة مع المؤشرات</h2>
+      <span class="last-update" id="compareNote"></span></div>
+    <div class="table-wrap"><table class="perf-table" id="compareTable"></table></div>
+  </div>
+  <div class="chart-box"><h3>الأداء النسبي (نقطة البداية = 100)</h3><div class="ch" style="height:340px"><canvas id="chartCompare"></canvas></div></div>
+</section>
+
+<!-- ===== الرسوم البيانية ===== -->
+<section class="view" id="view-charts">
+  <div class="charts-grid">
+    <div class="chart-box" style="grid-column:1/-1"><h3>تطور قيمة المحفظة الشاملة (ريال سعودي)</h3><div class="ch"><canvas id="chartEvolution"></canvas></div></div>
+    <div class="chart-box"><h3>نسب الشركات — المحفظة السعودية</h3><div class="ch"><canvas id="chartAllocSA"></canvas></div></div>
+    <div class="chart-box"><h3>نسب الشركات — المحفظة الأمريكية</h3><div class="ch"><canvas id="chartAllocUS"></canvas></div></div>
+    <div class="chart-box"><h3>نسب الشركات — المحفظة الشاملة</h3><div class="ch"><canvas id="chartAlloc"></canvas></div></div>
+    <div class="chart-box"><h3>توزيع الأسواق</h3><div class="ch"><canvas id="chartMarkets"></canvas></div></div>
+    <div class="chart-box"><h3>أكبر المراكز (ريال سعودي)</h3><div class="ch"><canvas id="chartTop"></canvas></div></div>
+    <div class="chart-box"><h3>الأرباح المحققة شهرياً (ريال سعودي)</h3><div class="ch"><canvas id="chartMonthly"></canvas></div></div>
+  </div>
+</section>
+
+<!-- ===== الإعدادات ===== -->
+<section class="view" id="view-settings">
+  <div class="settings-grid">
+    <div class="panel">
+      <div class="panel-head"><h2>الاستيراد والتصدير</h2></div>
+      <div style="padding:18px;display:flex;flex-direction:column;gap:10px">
+        <button class="btn" id="exportBtn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>تصدير البيانات JSON</button>
+        <button class="btn" id="importBtn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>استيراد البيانات JSON</button>
+        <input type="file" id="importFile" accept=".json" style="display:none">
+        <button class="btn" id="backupBtn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>نسخ احتياطي (داخل المتصفح)</button>
+        <button class="btn" id="restoreBtn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>استعادة النسخة الاحتياطية</button>
+        <hr style="border-color:var(--border);border-style:solid;border-width:0 0 1px">
+        <button class="btn" id="clearDemoBtn" style="color:var(--gold)"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>مسح البيانات التجريبية</button>
+        <button class="btn" id="wipeBtn" style="color:var(--red)"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>مسح جميع البيانات</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>إعدادات عامة</h2></div>
+      <div style="padding:18px">
+        <div class="field"><label>سعر صرف الدولار مقابل الريال</label><input type="number" id="usdRateInput" step="0.01" min="1"></div>
+        <div class="field"><label>فترة التحديث التلقائي (ثانية)</label><input type="number" id="refreshIntervalInput" step="10" min="20"></div>
+        <button class="btn-primary" id="saveSettingsBtn">حفظ الإعدادات</button>
+      </div>
+    </div>
+  </div>
+  <div class="panel readme-box">
+    <div class="panel-head"><h2>README — النشر على GitHub Pages</h2>
+      <button class="btn btn-sm" id="copyReadmeBtn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>نسخ</button></div>
+    <div style="padding:18px"><textarea id="readmeText" readonly></textarea></div>
+  </div>
+</section>
+
+</main>
+
+<!-- ================= نافذة إضافة صفقة شراء ================= -->
+<div class="modal-overlay" id="buyModal">
+  <div class="modal">
+    <h3>إضافة صفقة شراء</h3>
+    <div class="row2">
+      <div class="field"><label>السوق</label>
+        <select id="buyMarket"><option value="SA">السوق السعودي</option><option value="US">السوق الأمريكي</option></select></div>
+      <div class="field"><label>رمز السهم</label><input id="buySymbol" placeholder="مثال: 2222 أو AAPL" style="direction:ltr"></div>
+    </div>
+    <div class="field"><label>اسم السهم (اختياري — يُجلب تلقائياً)</label><input id="buyName" placeholder="اسم الشركة"></div>
+    <div class="row2">
+      <div class="field"><label>الكمية</label><input type="number" id="buyQty" min="0.0001" step="any"></div>
+      <div class="field"><label>سعر الشراء <button class="btn btn-sm" type="button" id="fetchPriceBtn" style="float:left">جلب السعر</button></label>
+        <input type="number" id="buyPrice" min="0" step="any"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>تاريخ الشراء</label><input type="date" id="buyDate"></div>
+      <div class="field"><label>العمولة</label><input type="number" id="buyComm" min="0" step="any" value="0"></div>
+    </div>
+    <div class="field"><label>ملاحظات</label><textarea id="buyNotes" rows="2"></textarea></div>
+    <div class="sell-preview" id="buyPreview">أدخل الكمية والسعر لعرض التكلفة</div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="saveBuyBtn">حفظ الصفقة</button>
+      <button class="btn" data-close>إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= نافذة البيع ================= -->
+<div class="modal-overlay" id="sellModal">
+  <div class="modal">
+    <h3>بيع <span id="sellTitle" class="sym-badge"></span></h3>
+    <div class="row2">
+      <div class="field"><label>الكمية المباعة (المتاح: <span id="sellMax" class="num">0</span>)</label>
+        <input type="number" id="sellQty" min="0.0001" step="any"></div>
+      <div class="field"><label>سعر البيع</label><input type="number" id="sellPrice" min="0" step="any"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>تاريخ البيع</label><input type="date" id="sellDate"></div>
+      <div class="field"><label>عمولة البيع</label><input type="number" id="sellComm" min="0" step="any" value="0"></div>
+    </div>
+    <div class="sell-preview" id="sellPreview">أدخل الكمية والسعر لمعاينة النتيجة</div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="confirmSellBtn">تأكيد البيع</button>
+      <button class="btn" data-close>إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= نافذة التوزيعات ================= -->
+<div class="modal-overlay" id="divModal">
+  <div class="modal">
+    <h3>إضافة توزيع نقدي</h3>
+    <div class="field"><label>السهم</label><select id="divSymbol"></select></div>
+    <div class="row2">
+      <div class="field"><label>تاريخ التوزيع</label><input type="date" id="divDate"></div>
+      <div class="field"><label>المبلغ (بعملة السوق)</label><input type="number" id="divAmount" min="0" step="any"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="saveDivBtn">حفظ التوزيع</button>
+      <button class="btn" data-close>إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= نافذة إيداع / سحب ================= -->
+<div class="modal-overlay" id="cashModal">
+  <div class="modal">
+    <h3 id="cashModalTitle">إيداع نقدي</h3>
+    <div class="row2">
+      <div class="field"><label>التاريخ</label><input type="date" id="cashDate"></div>
+      <div class="field"><label>المبلغ (ريال سعودي)</label><input type="number" id="cashAmount" min="0" step="any"></div>
+    </div>
+    <div class="field"><label>ملاحظة</label><input id="cashNote"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="saveCashBtn">حفظ</button>
+      <button class="btn" data-close>إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ============================================================================
+   محفظتي — لوحة إدارة المحفظة الاستثمارية (السوق السعودي + الأمريكي)
+   ملف واحد: HTML + CSS + JS | بدون Backend | LocalStorage | Yahoo Finance
+   ============================================================================ */
+
+const STORAGE_KEY = 'portfolioApp_v1';
+const BACKUP_KEY  = 'portfolioApp_backup';
+const fmt  = new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt0 = new Intl.NumberFormat('en-US',{maximumFractionDigits:4});
+const todayStr = () => new Date().toISOString().slice(0,10);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const CUR = {SA:'ر.س', US:'$'};
+
+/* عرض مبلغ بعملته */
+function money(v, market){ return (market==='US' ? '$'+fmt.format(v) : fmt.format(v)+' ر.س'); }
+function sar(v){ return fmt.format(v)+' ر.س'; }
+function pct(v){ return (v>=0?'+':'')+fmt.format(v)+'%'; }
+function cls(v){ return v>=0?'pos':'neg'; }
+/* تطبيع النص العربي للبحث (توحيد الهمزات والتاء المربوطة) */
+function normAr(t){ return t.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي'); }
+/* عرض مزدوج: المبلغ بالدولار وتحته المعادل بالريال بخط صغير */
+function moneyDual(v, market, rate){
+  if(market !== 'US') return money(v, market);
+  return `$${fmt.format(v)}<span class="sub-sar">≈ ${fmt.format(v*rate)} ر.س</span>`;
+}
+
+/* ============================================================================
+   Store — التخزين في LocalStorage + الاستيراد والتصدير والنسخ الاحتياطي
+   ============================================================================ */
+class Store {
+  constructor(){
+    this.state = this.load() || this.defaultState();
+  }
+  defaultState(){
+    return {
+      lots: [],            // صفقات الشراء (المراكز المفتوحة + المغلقة جزئياً)
+      sales: [],           // عمليات البيع المنفذة
+      dividends: [],       // التوزيعات النقدية
+      cashMoves: [],       // حركات نقدية يدوية (إيداع/سحب)
+      priceCache: {},      // كاش الأسعار {symbol: {price, prevClose, name, ts}}
+      snapshots: [],       // لقطات يومية لقيمة المحفظة
+      settings: { usdToSar: 3.75, autoRefresh: true, refreshInterval: 60, theme: 'dark' },
+      meta: { demoInjected: false }
+    };
+  }
+  load(){
+    try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; }
+    catch(e){ console.warn('فشل تحميل البيانات', e); return null; }
+  }
+  save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state)); }
+  exportJSON(){
+    const blob = new Blob([JSON.stringify(this.state, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `portfolio-backup-${todayStr()}.json`;
+    a.click(); URL.revokeObjectURL(a.href);
+  }
+  importJSON(text){
+    const data = JSON.parse(text);
+    if(!data || !Array.isArray(data.lots)) throw new Error('ملف غير صالح');
+    this.state = Object.assign(this.defaultState(), data);
+    this.save();
+  }
+  backup(){ localStorage.setItem(BACKUP_KEY, JSON.stringify(this.state)); }
+  restore(){
+    const raw = localStorage.getItem(BACKUP_KEY);
+    if(!raw) throw new Error('لا توجد نسخة احتياطية');
+    this.state = JSON.parse(raw); this.save();
+  }
+  wipe(){ this.state = this.defaultState(); this.save(); }
+}
+
+/* ============================================================================
+   PriceService — جلب الأسعار من Yahoo Finance مع سلسلة CORS proxies احتياطية
+   ============================================================================ */
+class PriceService {
+  constructor(store){
+    this.store = store;
+    // محاولة مباشرة أولاً ثم proxies بالترتيب — يتذكر الناجح في الجلسة
+    this.proxies = [
+      u => u,
+      u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+      u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+      u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+    ];
+    this.workingProxy = null;
+  }
+  /* تحويل رمز المستخدم إلى رمز Yahoo: السعودي يضاف له .SR */
+  yahooSymbol(symbol, market){
+    return market === 'SA' ? symbol.toUpperCase() + '.SR' : symbol.toUpperCase();
+  }
+  async fetchWithFallback(url){
+    const order = this.workingProxy !== null
+      ? [this.proxies[this.workingProxy], ...this.proxies.filter((_,i)=>i!==this.workingProxy)]
+      : this.proxies;
+    for(const wrap of order){
+      try{
+        const res = await fetch(wrap(url), {signal: AbortSignal.timeout(12000)});
+        if(!res.ok) continue;
+        const json = await res.json();
+        if(json && json.chart) { this.workingProxy = this.proxies.indexOf(wrap); return json; }
+      }catch(e){ /* جرّب التالي */ }
+    }
+    throw new Error('تعذر الوصول إلى Yahoo Finance');
+  }
+  /* جلب السعر الحالي + الإغلاق السابق + الاسم */
+  async getQuote(ySymbol){
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySymbol)}?range=1d&interval=1d`;
+    const json = await this.fetchWithFallback(url);
+    const meta = json.chart?.result?.[0]?.meta;
+    if(!meta || meta.regularMarketPrice == null) throw new Error('رمز غير معروف: '+ySymbol);
+    const quote = {
+      price: meta.regularMarketPrice,
+      prevClose: meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice,
+      name: meta.longName || meta.shortName || '',
+      currency: meta.currency || '',
+      ts: Date.now()
+    };
+    this.store.state.priceCache[ySymbol] = quote;
+    return quote;
+  }
+  /* بيانات تاريخية للمؤشرات والمقارنة */
+  async getHistory(ySymbol, range='3mo'){
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySymbol)}?range=${range}&interval=1d`;
+    const json = await this.fetchWithFallback(url);
+    const r = json.chart?.result?.[0];
+    if(!r) throw new Error('لا توجد بيانات');
+    const ts = r.timestamp || [];
+    const closes = r.indicators?.quote?.[0]?.close || [];
+    const out = [];
+    for(let i=0;i<ts.length;i++){
+      if(closes[i] != null) out.push({date: new Date(ts[i]*1000).toISOString().slice(0,10), close: closes[i]});
+    }
+    return out;
+  }
+  /* السعر من الكاش (للعرض دون اتصال) */
+  cached(ySymbol){ return this.store.state.priceCache[ySymbol] || null; }
+}
+
+/* ============================================================================
+   Portfolio — منطق الحسابات: المراكز، متوسط التكلفة، البيع، الإحصائيات
+   ============================================================================ */
+class Portfolio {
+  constructor(store, prices){ this.store = store; this.prices = prices; }
+  get s(){ return this.store.state; }
+  get rate(){ return this.s.settings.usdToSar; }
+  /* تحويل قيمة إلى ريال حسب السوق */
+  toSAR(v, market){ return market==='US' ? v * this.rate : v; }
+
+  /* تكلفة السهم الواحد في صفقة شراء (شاملة العمولة) */
+  lotCostPerShare(lot){ return (lot.qty * lot.buyPrice + (lot.commission||0)) / lot.qty; }
+
+  /* الرصيد النقدي الفعلي (بالريال):
+     الإيداعات والسحوبات + التوزيعات + متحصلات البيع − تكاليف الشراء */
+  cashBalance(){
+    let c = 0;
+    for(const m of this.s.cashMoves) c += m.amount;
+    for(const d of this.s.dividends) c += this.toSAR(d.amount, d.market);
+    for(const x of this.s.sales) c += this.toSAR(x.qty*x.sellPrice - (x.sellCommission||0), x.market);
+    for(const l of this.s.lots) c -= this.toSAR(l.qty*l.buyPrice + (l.commission||0), l.market);
+    return c;
+  }
+
+  /* المراكز المفتوحة مجمعة حسب الرمز. market = 'SA' | 'US' | 'ALL' */
+  positions(market='ALL'){
+    const map = {};
+    for(const lot of this.s.lots){
+      if(lot.remainingQty <= 1e-9) continue;
+      if(market !== 'ALL' && lot.market !== market) continue;
+      const key = lot.market + ':' + lot.symbol;
+      if(!map[key]) map[key] = {symbol:lot.symbol, name:lot.name, market:lot.market, qty:0, cost:0, firstBuy:lot.buyDate, lots:[]};
+      const p = map[key];
+      p.qty  += lot.remainingQty;
+      p.cost += lot.remainingQty * this.lotCostPerShare(lot);
+      if(lot.buyDate < p.firstBuy) p.firstBuy = lot.buyDate;
+      if(lot.name && !p.name) p.name = lot.name;
+      p.lots.push(lot);
+    }
+    const list = Object.values(map);
+    for(const p of list){
+      p.avgCost = p.cost / p.qty;
+      const ySym = this.prices.yahooSymbol(p.symbol, p.market);
+      const q = this.prices.cached(ySym);
+      p.price = q ? q.price : null;
+      p.prevClose = q ? q.prevClose : null;
+      p.priceTs = q ? q.ts : null;
+      if(q && q.name && !p.name) p.name = q.name;
+      p.value = p.price != null ? p.qty * p.price : null;
+      p.pnl   = p.value != null ? p.value - p.cost : null;
+      p.pnlPct= p.pnl  != null ? p.pnl / p.cost * 100 : null;
+      p.holdDays = Math.max(0, Math.round((Date.now() - new Date(p.firstBuy)) / 86400000));
+    }
+    // وزن السهم من إجمالي المحفظة المعروضة (بالريال للتوحيد)
+    const total = list.reduce((s,p)=> s + (p.value!=null ? this.toSAR(p.value,p.market) : 0), 0);
+    for(const p of list) p.weight = (p.value!=null && total>0) ? this.toSAR(p.value,p.market)/total*100 : 0;
+    return list;
+  }
+
+  /* تنفيذ بيع: متوسط التكلفة، تخفيض الكميات من الأقدم، تسجيل العملية */
+  sell({symbol, market, qty, sellPrice, sellDate, sellCommission}){
+    const lots = this.s.lots
+      .filter(l => l.symbol===symbol && l.market===market && l.remainingQty > 1e-9)
+      .sort((a,b)=> a.buyDate.localeCompare(b.buyDate));
+    const available = lots.reduce((s,l)=>s+l.remainingQty,0);
+    if(qty > available + 1e-9) throw new Error('الكمية أكبر من المتاح');
+    // متوسط التكلفة للكمية المتبقية قبل البيع
+    const avgCost = lots.reduce((s,l)=> s + l.remainingQty*this.lotCostPerShare(l),0) / available;
+    const firstBuy = lots[0].buyDate;
+    // تخفيض الكمية من الصفقات الأقدم أولاً
+    let remain = qty;
+    for(const lot of lots){
+      if(remain <= 1e-9) break;
+      const take = Math.min(lot.remainingQty, remain);
+      lot.remainingQty -= take; remain -= take;
+    }
+    const pnl = qty*(sellPrice - avgCost) - (sellCommission||0);
+    const sale = {
+      id: uid(), symbol, market, qty, sellPrice, sellDate,
+      sellCommission: sellCommission||0, buyDate: firstBuy,
+      avgCost, pnl, pnlPct: pnl / (qty*avgCost) * 100,
+      name: lots[0].name || ''
+    };
+    this.s.sales.push(sale);
+    this.store.save();
+    return sale;
+  }
+
+  /* الإحصائيات لكل نطاق: SA | US | ALL — القيم بالريال عند ALL وبعملة السوق غير ذلك */
+  stats(market='ALL'){
+    const conv = (v,m)=> market==='ALL' ? this.toSAR(v,m) : v;
+    const inScope = m => market==='ALL' || m===market;
+    const pos = this.positions(market);
+    let value=0, cost=0, priced=true;
+    for(const p of pos){
+      cost += conv(p.cost, p.market);
+      if(p.value!=null) value += conv(p.value, p.market); else priced=false;
+    }
+    let realizedP=0, realizedL=0;
+    for(const s of this.s.sales){ if(!inScope(s.market)) continue;
+      if(s.pnl>=0) realizedP += conv(s.pnl,s.market); else realizedL += conv(-s.pnl,s.market); }
+    let divs=0;
+    for(const d of this.s.dividends){ if(inScope(d.market)) divs += conv(d.amount,d.market); }
+    // الرصيد النقدي الفعلي (موحّد بالريال لكل النطاقات)
+    const cash = this.cashBalance();
+    return {
+      value, cost, unrealized: value-cost,
+      unrealizedPct: cost>0 ? (value-cost)/cost*100 : 0,
+      realizedP, realizedL, divs,
+      netRealized: realizedP - realizedL + divs,
+      cash, netWorth: value + cash, priced
+    };
+  }
+
+  /* لقطة يومية لقيمة المحفظة (سجل واحد لكل يوم) */
+  takeSnapshot(tasi, sp500){
+    const sa = this.stats('SA'), us = this.stats('US'), all = this.stats('ALL');
+    if(!all.priced) return; // لا نسجل لقطة ناقصة الأسعار
+    const snap = {date: todayStr(), valueSA: sa.value, valueUS: us.value, valueTotal: all.value,
+                  costTotal: all.cost, tasi: tasi??null, sp500: sp500??null};
+    const i = this.s.snapshots.findIndex(x=>x.date===snap.date);
+    if(i>=0) this.s.snapshots[i]=snap; else this.s.snapshots.push(snap);
+    this.s.snapshots.sort((a,b)=>a.date.localeCompare(b.date));
+    this.store.save();
+  }
+}
+
+/* ============================================================================
+   ChartManager — الرسوم البيانية باستخدام Chart.js
+   ============================================================================ */
+class ChartManager {
+  constructor(portfolio){
+    this.pf = portfolio; this.charts = {};
+    // تفعيل إضافة النسب على الرسوم (معطّلة افتراضياً وتُفعّل لكل رسم دائري)
+    if(window.ChartDataLabels){
+      Chart.register(ChartDataLabels);
+      Chart.defaults.set('plugins.datalabels', {display:false});
+    }
+  }
+  /* إعدادات موحدة لرسم دائري احترافي بالنسب المئوية */
+  pieConfig(type, labels, data, colors, unit='ر.س'){
+    const sum = data.reduce((a,b)=>a+b,0) || 1;
+    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim();
+    return {
+      type,
+      data:{labels, datasets:[{data, backgroundColor:colors, borderWidth:2,
+        borderColor:getComputedStyle(document.body).getPropertyValue('--bg2').trim()}]},
+      options:{
+        maintainAspectRatio:false, cutout: type==='doughnut' ? '55%' : 0,
+        layout:{padding:8},
+        plugins:{
+          legend:{position:'left', labels:{usePointStyle:true, boxWidth:8, font:{size:11},
+            color: textColor,
+            // النسبة بجانب اسم السهم في وسيلة الإيضاح (بلون النص الأساسي)
+            generateLabels: chart => chart.data.labels.map((l,i)=>({
+              text:`${l}  ${fmt.format(chart.data.datasets[0].data[i]/sum*100)}%`,
+              fillStyle: colors[i%colors.length], strokeStyle:'transparent',
+              fontColor: textColor, pointStyle:'circle', index:i,
+            }))}},
+          tooltip:{callbacks:{label: ctx =>
+            ` ${ctx.label}: ${fmt.format(ctx.parsed)} ${unit} (${fmt.format(ctx.parsed/sum*100)}%)`}},
+          // اسم السهم فوق نسبته داخل الشريحة (تُخفى للشرائح الصغيرة لتبقى أنيقة)
+          datalabels:{
+            display: ctx => ctx.dataset.data[ctx.dataIndex]/sum >= 0.06,
+            formatter: (v, ctx) => [ctx.chart.data.labels[ctx.dataIndex], fmt.format(v/sum*100)+'%'],
+            color:'#fff', textAlign:'center',
+            font: ctx => {
+              // السطر الأول (الاسم) أعرض قليلاً من النسبة
+              const big = ctx.dataset.data[ctx.dataIndex]/sum >= 0.15;
+              return {weight:'bold', size: big ? 12 : 10.5, family:'Tajawal', lineHeight:1.25};
+            },
+            textShadowBlur:6, textShadowColor:'rgba(0,0,0,.55)',
+          }
+        }
+      }
+    };
+  }
+  colors(){
+    const cs = getComputedStyle(document.body);
+    return {text: cs.getPropertyValue('--text2').trim(), grid: cs.getPropertyValue('--border').trim()};
+  }
+  palette = ['#4f8cff','#26c281','#f0b429','#f25f5c','#7c5cff','#2dccd3','#ff8c42','#a3d65c','#e85d9e','#8b97a8'];
+  make(id, config){
+    if(this.charts[id]) this.charts[id].destroy();
+    const el = document.getElementById(id);
+    if(!el) return;
+    const {text, grid} = this.colors();
+    Chart.defaults.color = text;
+    Chart.defaults.borderColor = grid;
+    Chart.defaults.font.family = 'Tajawal';
+    this.charts[id] = new Chart(el, config);
+  }
+  renderAll(){
+    this.evolution();
+    this.allocation('chartAllocSA','SA');
+    this.allocation('chartAllocUS','US');
+    this.allocation('chartAlloc','ALL');
+    this.markets(); this.topPositions(); this.monthly();
+  }
+  evolution(){
+    const snaps = this.pf.s.snapshots;
+    this.make('chartEvolution', {
+      type:'line',
+      data:{ labels: snaps.map(s=>s.date),
+        datasets:[
+          {label:'قيمة المحفظة', data:snaps.map(s=>s.valueTotal), borderColor:'#4f8cff', backgroundColor:'rgba(79,140,255,.12)', fill:true, tension:.3},
+          {label:'التكلفة', data:snaps.map(s=>s.costTotal), borderColor:'#8b97a8', borderDash:[6,4], pointRadius:0, tension:.3},
+        ]},
+      options:{maintainAspectRatio:false, plugins:{legend:{labels:{usePointStyle:true}}},
+        scales:{y:{ticks:{callback:v=>fmt0.format(v)}}}}
+    });
+  }
+  /* نسب الشركات داخل محفظة محددة (سعودية/أمريكية/شاملة) */
+  allocation(id, market){
+    const pos = this.pf.positions(market).filter(p=>p.value!=null)
+      .sort((a,b)=>this.pf.toSAR(b.value,b.market)-this.pf.toSAR(a.value,a.market));
+    const unit = market==='US' ? '$' : 'ر.س';
+    const vals = pos.map(p=> market==='ALL' ? this.pf.toSAR(p.value,p.market) : p.value);
+    this.make(id, this.pieConfig('doughnut', pos.map(p=>p.symbol), vals, this.palette, unit));
+  }
+  markets(){
+    const sa = this.pf.stats('SA'), us = this.pf.stats('US');
+    this.make('chartMarkets', this.pieConfig('pie',
+      ['السوق السعودي','السوق الأمريكي'],
+      [sa.value, us.value*this.pf.rate], ['#26c281','#4f8cff']));
+  }
+  topPositions(){
+    const all = this.pf.positions('ALL').filter(p=>p.value!=null);
+    const total = all.reduce((s,p)=>s+this.pf.toSAR(p.value,p.market),0) || 1;
+    const pos = all.sort((a,b)=>this.pf.toSAR(b.value,b.market)-this.pf.toSAR(a.value,a.market)).slice(0,8);
+    this.make('chartTop', {
+      type:'bar',
+      data:{labels:pos.map(p=>p.symbol),
+        datasets:[{label:'القيمة (ر.س)', data:pos.map(p=>this.pf.toSAR(p.value,p.market)), backgroundColor:'#4f8cff', borderRadius:6}]},
+      options:{indexAxis:'y', maintainAspectRatio:false,
+        plugins:{legend:{display:false},
+          tooltip:{callbacks:{label: ctx => ` ${fmt.format(ctx.parsed.x)} ر.س (${fmt.format(ctx.parsed.x/total*100)}%)`}},
+          // نسبة المركز من إجمالي المحفظة على طرف الشريط
+          datalabels:{display:true, anchor:'end', align:'start',
+            formatter: v => fmt.format(v/total*100)+'%',
+            color:'#fff', font:{weight:'bold', size:11, family:'Tajawal'}}},
+        scales:{x:{ticks:{callback:v=>fmt0.format(v)}}}}
+    });
+  }
+  monthly(){
+    // تجميع الأرباح المحققة (بالريال) حسب الشهر
+    const byMonth = {};
+    for(const s of this.pf.s.sales){
+      const m = s.sellDate.slice(0,7);
+      byMonth[m] = (byMonth[m]||0) + this.pf.toSAR(s.pnl, s.market);
+    }
+    const months = Object.keys(byMonth).sort();
+    this.make('chartMonthly', {
+      type:'bar',
+      data:{labels:months,
+        datasets:[{label:'الربح/الخسارة المحققة', data:months.map(m=>byMonth[m]),
+          backgroundColor:months.map(m=>byMonth[m]>=0?'#26c281':'#f25f5c'), borderRadius:6}]},
+      options:{maintainAspectRatio:false, plugins:{legend:{display:false}}}
+    });
+  }
+  /* رسم مقارنة الأداء: محفظة + مؤشرين، مُطبَّعة لنقطة بداية 100 */
+  compare(series){
+    const norm = arr => { const b = arr.find(v=>v!=null); return arr.map(v=> v!=null&&b ? v/b*100 : null); };
+    this.make('chartCompare', {
+      type:'line',
+      data:{ labels: series.labels,
+        datasets:[
+          {label:'المحفظة الشاملة', data:norm(series.portfolio), borderColor:'#4f8cff', tension:.3, pointRadius:0, borderWidth:2.5},
+          {label:'تاسي TASI', data:norm(series.tasi), borderColor:'#26c281', tension:.3, pointRadius:0, borderDash:[5,3]},
+          {label:'S&P 500', data:norm(series.sp500), borderColor:'#f0b429', tension:.3, pointRadius:0, borderDash:[5,3]},
+        ]},
+      options:{maintainAspectRatio:false, spanGaps:true, plugins:{legend:{labels:{usePointStyle:true}}}}
+    });
+  }
+}
+
+/* ============================================================================
+   UI — بناء الواجهة: التبويبات، الجداول، النماذج، البحث والفلترة
+   ============================================================================ */
+class UI {
+  constructor(app){
+    this.app = app;
+    this.activeView = 'sa';
+    this.activeRecord = 'buys';
+    // حالة البحث/الفلترة/الترتيب لكل محفظة
+    this.tableState = { sa:{q:'',sort:'value'}, us:{q:'',sort:'value'}, all:{q:'',sort:'value',mkt:'ALL'} };
+    this.sellCtx = null; // السهم الجاري بيعه
+  }
+  toast(msg, ok=true){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.display='block';
+    t.style.borderColor = ok ? 'var(--green)' : 'var(--red)';
+    clearTimeout(this._tt); this._tt = setTimeout(()=> t.style.display='none', 3200);
+  }
+  switchView(v){
+    this.activeView = v;
+    document.querySelectorAll('#mainTabs button').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+    document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active', s.id==='view-'+v));
+    this.render();
+    if(v==='charts') this.app.chartMgr.renderAll();
+    if(v==='compare') this.app.renderCompare();
+  }
+  openModal(id){ document.getElementById(id).classList.add('open'); }
+  closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+  /* ---------- بناء عرض محفظة (سعودية/أمريكية/شاملة) ---------- */
+  renderPortfolioView(view){
+    const market = view==='sa' ? 'SA' : view==='us' ? 'US' : 'ALL';
+    const pf = this.app.portfolio;
+    const st = pf.stats(market);
+    const curLabel = market==='US' ? '$' : 'ر.س';
+    // في المحفظة الأمريكية: المبلغ بالدولار وتحته المعادل بالريال
+    const m = v => market==='US' ? moneyDual(v,'US',pf.rate) : fmt.format(v)+' ر.س';
+    const cards = [
+      ['إجمالي قيمة المحفظة', m(st.value), null],
+      ['إجمالي التكلفة', m(st.cost), null],
+      ['الأرباح/الخسائر غير المحققة', m(st.unrealized), st.unrealized, pct(st.unrealizedPct)],
+      ['الأرباح المحققة', m(st.realizedP), 1],
+      ['الخسائر المحققة', m(st.realizedL), st.realizedL>0?-1:0],
+      ['إجمالي التوزيعات', m(st.divs), null],
+      ['الرصيد النقدي', sar(pf.stats('ALL').cash), null],
+      ['صافي الثروة', sar(pf.stats('ALL').netWorth), null],
+    ];
+    const ts = this.tableState[view];
+    let pos = pf.positions(market);
+    // المحفظة الشاملة: فلتر سوق إضافي
+    if(market==='ALL' && ts.mkt!=='ALL') pos = pos.filter(p=>p.market===ts.mkt);
+    if(ts.q) pos = pos.filter(p=> normAr(p.symbol+' '+(p.name||'')).includes(normAr(ts.q)));
+    const sorters = {
+      pnl:   (a,b)=>(b.pnl??-1e18)-(a.pnl??-1e18),
+      value: (a,b)=>(pf.toSAR(b.value??0,b.market))-(pf.toSAR(a.value??0,a.market)),
+      hold:  (a,b)=>b.holdDays-a.holdDays,
+    };
+    pos.sort(sorters[ts.sort]||sorters.value);
+
+    const cardsHtml = `<div class="cards">${cards.map(c=>`
+      <div class="card"><div class="clabel">${c[0]}</div>
+        <div class="cval ${c[2]==null?'':cls(c[2])}">${c[1]}</div>
+        ${c[3]?`<div class="csub ${cls(c[2])}">${c[3]}</div>`:''}</div>`).join('')}</div>`;
+
+    const rows = pos.map(p=>{
+      const stale = p.priceTs && (Date.now()-p.priceTs > 10*60*1000);
+      return `<tr>
+        <td><span class="sym-badge">${p.symbol}</span>${p.lots.length>1
+          ? `<span class="lot-badge" title="اشتريت هذا السهم على ${p.lots.length} دفعات">${p.lots.length} دفعات</span>` : ''}</td>
+        <td>${p.name||'—'}</td>
+        <td><span class="mkt-badge mkt-${p.market}">${p.market==='SA'?'سعودي':'أمريكي'}</span></td>
+        <td class="num">${fmt0.format(p.qty)}</td>
+        <td class="num">${p.firstBuy}</td>
+        <td class="num">${p.holdDays} يوم</td>
+        <td class="num">${fmt.format(p.avgCost)}</td>
+        <td class="num">${p.price!=null?fmt.format(p.price):'—'}${stale?'<span class="stale-tag">سعر مخزّن</span>':''}</td>
+        <td class="num">${p.value!=null?moneyDual(p.value,p.market,pf.rate):'—'}</td>
+        <td class="num">${moneyDual(p.cost,p.market,pf.rate)}</td>
+        <td class="num ${p.pnl!=null?cls(p.pnl):''}">${p.pnl!=null?moneyDual(p.pnl,p.market,pf.rate):'—'}</td>
+        <td class="num ${p.pnlPct!=null?cls(p.pnlPct):''}">${p.pnlPct!=null?pct(p.pnlPct):'—'}</td>
+        <td class="num">${fmt.format(p.weight)}%</td>
+        <td><button class="btn-red btn-sm" data-sell="${p.market}:${p.symbol}">بيع</button></td>
+      </tr>`;
+    }).join('');
+
+    const mktFilter = market==='ALL' ? `
+      <select data-filter-mkt="${view}">
+        <option value="ALL" ${ts.mkt==='ALL'?'selected':''}>كل الأسواق</option>
+        <option value="SA" ${ts.mkt==='SA'?'selected':''}>السوق السعودي</option>
+        <option value="US" ${ts.mkt==='US'?'selected':''}>السوق الأمريكي</option>
+      </select>` : '';
+
+    document.getElementById('view-'+view).innerHTML = cardsHtml + `
+      <div class="panel">
+        <div class="panel-head">
+          <h2>${market==='SA'?'المحفظة السعودية':market==='US'?'المحفظة الأمريكية':'المحفظة الشاملة'}
+            <span style="font-size:12px;color:var(--text2)">(${curLabel}${market==='ALL'?' — الدولار محوّل @'+fmt.format(pf.rate):''})</span></h2>
+          <div class="toolbar">
+            <input placeholder="بحث عن سهم..." value="${ts.q.replace(/"/g,'&quot;')}" data-search="${view}">
+            ${mktFilter}
+            <select data-sort="${view}">
+              <option value="value" ${ts.sort==='value'?'selected':''}>ترتيب: القيمة</option>
+              <option value="pnl" ${ts.sort==='pnl'?'selected':''}>ترتيب: الربح</option>
+              <option value="hold" ${ts.sort==='hold'?'selected':''}>ترتيب: مدة الاحتفاظ</option>
+            </select>
+            <button class="btn-primary" data-addbuy="${market}">+ إضافة صفقة شراء</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          ${pos.length===0 ? '<div class="empty-msg">لا توجد أسهم — ابدأ بإضافة صفقة شراء</div>' : `
+          <table><thead><tr>
+            <th>الرمز</th><th>اسم الشركة</th><th>السوق</th><th>الكمية</th><th>أول شراء</th>
+            <th>مدة الاحتفاظ</th><th>متوسط التكلفة</th><th>السعر الحالي</th><th>القيمة السوقية</th>
+            <th>التكلفة</th><th>الربح/الخسارة</th><th>النسبة</th><th>الوزن</th><th></th>
+          </tr></thead><tbody>${rows}</tbody></table>`}
+        </div>
+      </div>`;
+  }
+
+  /* ---------- سجل الصفقات ---------- */
+  renderRecords(){
+    const s = this.app.store.state;
+    document.querySelectorAll('#recordTabs button').forEach(b=>b.classList.toggle('active', b.dataset.rec===this.activeRecord));
+    const wrap = document.getElementById('recordsTable');
+    const mkt = m => `<span class="mkt-badge mkt-${m}">${m==='SA'?'سعودي':'أمريكي'}</span>`;
+    if(this.activeRecord==='buys'){
+      const lots = [...s.lots].sort((a,b)=>b.buyDate.localeCompare(a.buyDate));
+      wrap.innerHTML = lots.length===0 ? '<div class="empty-msg">لا توجد مشتريات</div>' : `
+        <table><thead><tr><th>الرمز</th><th>الاسم</th><th>السوق</th><th>تاريخ الشراء</th><th>الكمية</th>
+        <th>المتبقي</th><th>سعر الشراء</th><th>العمولة</th><th>التكلفة الإجمالية</th><th>ملاحظات</th><th></th></tr></thead><tbody>
+        ${lots.map(l=>`<tr>
+          <td><span class="sym-badge">${l.symbol}</span></td><td>${l.name||'—'}</td><td>${mkt(l.market)}</td>
+          <td class="num">${l.buyDate}</td><td class="num">${fmt0.format(l.qty)}</td>
+          <td class="num">${fmt0.format(l.remainingQty)}</td>
+          <td class="num">${fmt.format(l.buyPrice)}</td><td class="num">${fmt.format(l.commission||0)}</td>
+          <td class="num">${money(l.qty*l.buyPrice+(l.commission||0), l.market)}</td>
+          <td style="white-space:normal;max-width:180px">${l.notes||''}</td>
+          <td><button class="btn btn-sm" data-dellot="${l.id}" title="حذف الصفقة" style="color:var(--red)">حذف</button></td>
+        </tr>`).join('')}</tbody></table>`;
+      return;
+    }
+    let sales = [...s.sales].sort((a,b)=>b.sellDate.localeCompare(a.sellDate));
+    if(this.activeRecord==='wins') sales = sales.filter(x=>x.pnl>=0);
+    if(this.activeRecord==='losses') sales = sales.filter(x=>x.pnl<0);
+    // ملخص: إجمالي الربح/الخسارة بالريال ونسبته من قيمة المحفظة
+    const pf = this.app.portfolio;
+    const totalSar = sales.reduce((t,x)=> t + pf.toSAR(x.pnl, x.market), 0);
+    const pv = pf.stats('ALL').value;
+    const labels = {sells:'الصافي المحقق', wins:'إجمالي الربح', losses:'إجمالي الخسارة'};
+    const summary = sales.length===0 ? '' : `<div class="rec-summary">
+      <span>عدد الصفقات: <b class="num">${sales.length}</b></span>
+      <span>${labels[this.activeRecord]}: <b class="num ${cls(totalSar)}">${sar(totalSar)}</b></span>
+      <span>نسبته من قيمة المحفظة: <b class="num ${cls(totalSar)}">${pct(pv>0 ? totalSar/pv*100 : 0)}</b></span>
+    </div>`;
+    wrap.innerHTML = sales.length===0 ? '<div class="empty-msg">لا توجد عمليات</div>' : summary + `
+      <table><thead><tr><th>الرمز</th><th>السوق</th><th>تاريخ الشراء</th><th>تاريخ البيع</th><th>الكمية</th>
+      <th>متوسط التكلفة</th><th>سعر البيع</th><th>عمولة البيع</th><th>الربح/الخسارة</th><th>النسبة</th></tr></thead><tbody>
+      ${sales.map(x=>`<tr>
+        <td><span class="sym-badge">${x.symbol}</span></td><td>${mkt(x.market)}</td>
+        <td class="num">${x.buyDate}</td><td class="num">${x.sellDate}</td>
+        <td class="num">${fmt0.format(x.qty)}</td><td class="num">${fmt.format(x.avgCost)}</td>
+        <td class="num">${fmt.format(x.sellPrice)}</td><td class="num">${fmt.format(x.sellCommission)}</td>
+        <td class="num ${cls(x.pnl)}">${money(x.pnl,x.market)}</td>
+        <td class="num ${cls(x.pnl)}">${pct(x.pnlPct)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+
+  /* ---------- التوزيعات النقدية ---------- */
+  renderDividends(){
+    const s = this.app.store.state, pf = this.app.portfolio;
+    const now = new Date(), ym = now.toISOString().slice(0,7), y = now.getFullYear().toString();
+    let total=0, month=0, year=0;
+    for(const d of s.dividends){
+      const v = pf.toSAR(d.amount, d.market);
+      total += v;
+      if(d.date.slice(0,7)===ym) month += v;
+      if(d.date.slice(0,4)===y) year += v;
+    }
+    document.getElementById('divCards').innerHTML = [
+      ['إجمالي التوزيعات', sar(total)], ['توزيعات هذا الشهر', sar(month)], ['توزيعات هذه السنة', sar(year)],
+    ].map(c=>`<div class="card"><div class="clabel">${c[0]}</div><div class="cval pos">${c[1]}</div></div>`).join('');
+    const divs = [...s.dividends].sort((a,b)=>b.date.localeCompare(a.date));
+    document.getElementById('divTable').innerHTML = divs.length===0 ? '<div class="empty-msg">لا توجد توزيعات</div>' : `
+      <table><thead><tr><th>السهم</th><th>السوق</th><th>تاريخ التوزيع</th><th>المبلغ</th><th>بالريال</th><th></th></tr></thead><tbody>
+      ${divs.map(d=>`<tr>
+        <td><span class="sym-badge">${d.symbol}</span></td>
+        <td><span class="mkt-badge mkt-${d.market}">${d.market==='SA'?'سعودي':'أمريكي'}</span></td>
+        <td class="num">${d.date}</td>
+        <td class="num pos">${money(d.amount,d.market)}</td>
+        <td class="num">${sar(pf.toSAR(d.amount,d.market))}</td>
+        <td><button class="btn btn-sm" data-deldiv="${d.id}" style="color:var(--red)">حذف</button></td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+
+  /* ---------- الرصيد النقدي ---------- */
+  renderCash(){
+    const st = this.app.portfolio.stats('ALL');
+    const net = st.realizedP - st.realizedL + st.divs;
+    document.getElementById('cashCards').innerHTML = [
+      ['الرصيد النقدي الحالي', sar(st.cash), null],
+      ['الأرباح المحققة', sar(st.realizedP), 1],
+      ['الخسائر المحققة', sar(st.realizedL), st.realizedL>0?-1:0],
+      ['إجمالي التوزيعات', sar(st.divs), null],
+      ['صافي الربح', sar(net), net],
+    ].map(c=>`<div class="card"><div class="clabel">${c[0]}</div><div class="cval ${c[2]==null?'':cls(c[2])}">${c[1]}</div></div>`).join('');
+    // دمج الحركات اليدوية مع الحركات التلقائية (نتائج البيع + التوزيعات) في سجل واحد
+    const s = this.app.store.state, pf = this.app.portfolio;
+    const moves = [
+      ...s.cashMoves.map(c=>({date:c.date, type:c.amount>=0?'إيداع':'سحب', amount:c.amount, note:c.note||'', id:c.id})),
+      ...s.lots.map(l=>({date:l.buyDate, type:'شراء '+l.symbol,
+        amount:-pf.toSAR(l.qty*l.buyPrice+(l.commission||0), l.market),
+        note:`${fmt0.format(l.qty)} سهم — خُصم تلقائياً`})),
+      ...s.sales.map(x=>({date:x.sellDate, type:'بيع '+x.symbol,
+        amount:pf.toSAR(x.qty*x.sellPrice-(x.sellCommission||0), x.market),
+        note:`متحصلات بيع ${fmt0.format(x.qty)} سهم (${x.pnl>=0?'ربح':'خسارة'} ${money(x.pnl,x.market)}) — أُضيف تلقائياً`})),
+      ...s.dividends.map(d=>({date:d.date, type:'توزيع '+d.symbol, amount:pf.toSAR(d.amount,d.market),
+        note:'توزيع نقدي — أُضيف تلقائياً'})),
+    ].sort((a,b)=>b.date.localeCompare(a.date));
+    document.getElementById('cashTable').innerHTML = moves.length===0 ? '<div class="empty-msg">لا توجد حركات بعد</div>' : `
+      <table style="min-width:560px"><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ (ر.س)</th><th>ملاحظة</th><th></th></tr></thead><tbody>
+      ${moves.map(c=>`<tr>
+        <td class="num">${c.date}</td>
+        <td>${c.type}</td>
+        <td class="num ${cls(c.amount)}">${sar(c.amount)}</td>
+        <td>${c.note}</td>
+        <td>${c.id?`<button class="btn btn-sm" data-delcash="${c.id}" style="color:var(--red)">حذف</button>`:''}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+
+  /* ---------- العرض العام حسب التبويب النشط ---------- */
+  render(){
+    const v = this.activeView;
+    if(v==='sa'||v==='us'||v==='all') this.renderPortfolioView(v);
+    else if(v==='records') this.renderRecords();
+    else if(v==='dividends') this.renderDividends();
+    else if(v==='cash') this.renderCash();
+  }
+
+  /* ---------- شريط أداء المحفظتين في الترويسة ---------- */
+  renderHeaderPerf(){
+    const pf = this.app.portfolio;
+    const set = (chipId, market) => {
+      const chip = document.getElementById(chipId);
+      let val=0, prev=0, priced=false;
+      for(const p of pf.positions(market)){
+        if(p.price!=null && p.prevClose!=null){
+          val += p.qty*p.price; prev += p.qty*p.prevClose; priced=true;
+        }
+      }
+      const ival = chip.querySelector('.ival'), ichg = chip.querySelector('.ichg');
+      if(!priced){ ival.textContent='—'; ichg.textContent='—'; return; }
+      const chg = val - prev, chgPct = prev>0 ? chg/prev*100 : 0;
+      ival.textContent = market==='US' ? '$'+fmt.format(val) : fmt.format(val)+' ر.س';
+      ichg.textContent = `${chg>=0?'▲':'▼'} ${fmt.format(Math.abs(chg))} (${pct(chgPct)})`;
+      ichg.className = 'ichg num ' + cls(chg);
+    };
+    set('chip-sa','SA'); set('chip-us','US');
+  }
+}
+
+/* ============================================================================
+   App — التهيئة، ربط الأحداث، البيانات التجريبية، التحديث التلقائي
+   ============================================================================ */
+class App {
+  constructor(){
+    this.store = new Store();
+    this.prices = new PriceService(this.store);
+    this.portfolio = new Portfolio(this.store, this.prices);
+    this.chartMgr = new ChartManager(this.portfolio);
+    this.ui = new UI(this);
+    this.refreshTimer = null;
+    this.indexHistory = {}; // كاش بيانات المؤشرات التاريخية للمقارنة
+  }
+
+  /* ---------- بيانات تجريبية عند أول تشغيل ---------- */
+  injectDemoData(){
+    const s = this.store.state;
+    if(s.meta.demoInjected || s.lots.length>0) return;
+    const ago = d => { const t=new Date(); t.setDate(t.getDate()-d); return t.toISOString().slice(0,10); };
+    const demo = [
+      // [رمز، اسم، سوق، كمية، سعر، قبل كم يوم، عمولة]
+      ['2222','أرامكو السعودية','SA', 200, 27.10, 220, 8.2],
+      ['1120','مصرف الراجحي','SA', 60, 82.40, 160, 7.5],
+      ['2010','سابك','SA', 80, 68.90, 120, 8.4],
+      ['7010','إس تي سي','SA', 100, 41.15, 75, 6.3],
+      ['AAPL','Apple Inc.','US', 15, 196.40, 200, 1.0],
+      ['MSFT','Microsoft Corp.','US', 8, 415.20, 150, 1.0],
+      ['NVDA','NVIDIA Corp.','US', 10, 118.60, 100, 1.0],
+      ['GOOGL','Alphabet Inc.','US', 12, 162.30, 60, 1.0],
+    ];
+    for(const [symbol,name,market,qty,buyPrice,days,commission] of demo){
+      s.lots.push({id:uid(), symbol, name, market, qty, remainingQty:qty, buyPrice,
+        buyDate:ago(days), commission, notes:'صفقة تجريبية', demo:true});
+    }
+    // عمليتا بيع تجريبيتان: رابحة وخاسرة
+    this.portfolio.sell({symbol:'2222', market:'SA', qty:50, sellPrice:29.85, sellDate:ago(40), sellCommission:4.1});
+    this.portfolio.sell({symbol:'NVDA', market:'US', qty:3, sellPrice:104.20, sellDate:ago(25), sellCommission:1.0});
+    Object.assign(s.sales[0],{demo:true}); Object.assign(s.sales[1],{demo:true});
+    // توزيعات تجريبية
+    s.dividends.push({id:uid(), symbol:'2222', market:'SA', date:ago(55), amount:91.0, demo:true});
+    s.dividends.push({id:uid(), symbol:'AAPL', market:'US', date:ago(30), amount:3.75, demo:true});
+    s.meta.demoInjected = true;
+    this.store.save();
+  }
+  /* ترقية نظام الكاش: البيانات القديمة كان رصيدها = صافي المحقق + التوزيعات.
+     النظام الجديد يخصم الشراء ويضيف متحصلات البيع، لذا نضيف "رصيد افتتاحي"
+     يحافظ على نفس الرصيد لحظة الترقية ثم تنساب الحركات الجديدة طبيعياً. */
+  migrateCash(){
+    const s = this.store.state;
+    if(s.meta.cashMigrated) return;
+    const pf = this.portfolio;
+    let realized=0, divs=0, manual=0;
+    for(const x of s.sales) realized += pf.toSAR(x.pnl, x.market);
+    for(const d of s.dividends) divs += pf.toSAR(d.amount, d.market);
+    for(const c of s.cashMoves) manual += c.amount;
+    const oldCash = realized + divs + manual;
+    const delta = oldCash - pf.cashBalance();
+    if(Math.abs(delta) > 0.005)
+      s.cashMoves.push({id:uid(), date:todayStr(), amount:delta, note:'رصيد افتتاحي (تسوية تلقائية)'});
+    s.meta.cashMigrated = true;
+    this.store.save();
+  }
+  clearDemoData(){
+    const s = this.store.state;
+    s.lots = s.lots.filter(l=>!l.demo);
+    s.sales = s.sales.filter(x=>!x.demo);
+    s.dividends = s.dividends.filter(d=>!d.demo);
+    s.snapshots = [];
+    this.store.save();
+    this.ui.render(); this.ui.toast('تم مسح البيانات التجريبية');
+  }
+
+  /* ---------- تحديث الأسعار (المؤشرات + كل أسهم المحفظة) ---------- */
+  async refreshPrices(manual=false){
+    const dot = document.getElementById('statusDot');
+    dot.className = 'status-dot wait';
+    const symbols = new Set();
+    for(const l of this.store.state.lots)
+      if(l.remainingQty>1e-9) symbols.add(this.prices.yahooSymbol(l.symbol, l.market));
+    let tasi=null, sp=null, failures=0;
+    // المؤشران أولاً ثم الأسهم — على دفعات متوازية صغيرة
+    try{ tasi = await this.prices.getQuote('^TASI.SR'); }catch(e){ failures++; }
+    try{ sp = await this.prices.getQuote('^GSPC'); }catch(e){ failures++; }
+    const list = [...symbols];
+    for(let i=0;i<list.length;i+=4){
+      await Promise.all(list.slice(i,i+4).map(sym =>
+        this.prices.getQuote(sym).catch(()=>{ failures++; })));
+    }
+    this.store.save();
+    this.portfolio.takeSnapshot(tasi?.price, sp?.price);
+    this.ui.renderHeaderPerf();
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    dot.className = 'status-dot ' + (failures===0 ? 'ok' : (failures < list.length+2 ? 'wait' : 'err'));
+    this.ui.render();
+    if(this.ui.activeView==='charts') this.chartMgr.renderAll();
+    if(manual) this.ui.toast(failures===0 ? 'تم تحديث الأسعار بنجاح' : `تم التحديث مع ${failures} رمز متعذر`, failures===0);
+  }
+  setupAutoRefresh(){
+    clearInterval(this.refreshTimer);
+    if(this.store.state.settings.autoRefresh){
+      this.refreshTimer = setInterval(()=> this.refreshPrices(false),
+        Math.max(20, this.store.state.settings.refreshInterval) * 1000);
+    }
+  }
+
+  /* ---------- مقارنة الأداء ---------- */
+  async renderCompare(){
+    const pf = this.portfolio;
+    const tbl = document.getElementById('compareTable');
+    const note = document.getElementById('compareNote');
+    // عوائد المحافظ: غير محقق + محقق + توزيعات نسبة إلى التكلفة الكلية المستثمرة
+    const ret = market => {
+      const st = pf.stats(market);
+      const conv = (v,m)=> market==='ALL' ? pf.toSAR(v,m) : v;
+      let investedAll = 0;
+      for(const l of this.store.state.lots)
+        if(market==='ALL'||l.market===market) investedAll += conv(l.qty*l.buyPrice+(l.commission||0), l.market);
+      const gain = st.unrealized + st.realizedP - st.realizedL + st.divs;
+      return investedAll>0 ? gain/investedAll*100 : 0;
+    };
+    // تاريخ أول صفقة شراء في نطاق معيّن
+    const firstBuy = market => {
+      let d = null;
+      for(const l of this.store.state.lots)
+        if(market==='ALL' || l.market===market)
+          if(!d || l.buyDate < d) d = l.buyDate;
+      return d;
+    };
+    const overallFirst = firstBuy('ALL');
+    // اختيار مدى تاريخي يغطي أول صفقة (حتى لو كانت قبل سنوات)
+    let range = '3mo';
+    if(overallFirst){
+      const days = (Date.now() - new Date(overallFirst)) / 86400000;
+      range = days<=85 ? '3mo' : days<=175 ? '6mo' : days<=360 ? '1y' : days<=720 ? '2y' : '5y';
+    }
+    if(this.indexHistory.range !== range) this.indexHistory = {range};
+    note.textContent = 'جاري تحميل بيانات المؤشرات...';
+    let tasiH=this.indexHistory.tasi, spH=this.indexHistory.sp;
+    try{
+      if(!tasiH) tasiH = this.indexHistory.tasi = await this.prices.getHistory('^TASI.SR', range);
+      if(!spH)   spH   = this.indexHistory.sp   = await this.prices.getHistory('^GSPC', range);
+      note.textContent = `عائد المؤشر محسوب منذ أول صفقة شراء (${overallFirst||'—'})`;
+    }catch(e){ note.textContent = 'تعذر تحميل بيانات المؤشرات — تحقق من الاتصال'; }
+    // عائد المؤشر من أول جلسة عند/بعد تاريخ الشراء الأول حتى اليوم
+    const idxRetSince = (h, since) => {
+      if(!h || h.length<2) return null;
+      const start = since ? h.find(x=>x.date>=since) : h[0];
+      if(!start) return null;
+      return (h[h.length-1].close/start.close - 1)*100;
+    };
+    const tasiRet = idxRetSince(tasiH, firstBuy('SA'));
+    const spRet   = idxRetSince(spH, firstBuy('US'));
+    const rows = [
+      ['المحفظة السعودية مقابل تاسي', ret('SA'), tasiRet, firstBuy('SA')],
+      ['المحفظة الأمريكية مقابل S&P 500', ret('US'), spRet, firstBuy('US')],
+      ['المحفظة الشاملة (متوسط المؤشرين)', ret('ALL'),
+        (tasiRet!=null&&spRet!=null) ? (tasiRet+spRet)/2 : null, overallFirst],
+    ];
+    tbl.innerHTML = `<thead><tr><th>المقارنة</th><th>منذ تاريخ</th><th>عائد المحفظة</th><th>عائد المؤشر</th><th>الفرق</th></tr></thead><tbody>
+      ${rows.map(r=>{
+        const diff = r[2]!=null ? r[1]-r[2] : null;
+        return `<tr><td style="white-space:normal">${r[0]}</td>
+          <td class="num">${r[3]||'—'}</td>
+          <td class="num ${cls(r[1])}">${pct(r[1])}</td>
+          <td class="num ${r[2]!=null?cls(r[2]):''}">${r[2]!=null?pct(r[2]):'—'}</td>
+          <td class="num ${diff!=null?cls(diff):''}">${diff!=null?pct(diff):'—'}</td></tr>`;
+      }).join('')}</tbody>`;
+    // الرسم: المؤشرات منذ أول صفقة شراء + لقطات المحفظة المتوفرة
+    if(tasiH && spH){
+      const from = overallFirst || tasiH[0].date;
+      const tasiF = tasiH.filter(x=>x.date>=from);
+      const snapMap = Object.fromEntries(this.store.state.snapshots.map(s=>[s.date, s.valueTotal]));
+      const labels = tasiF.map(x=>x.date);
+      const spMap = Object.fromEntries(spH.map(x=>[x.date,x.close]));
+      this.chartMgr.compare({
+        labels,
+        portfolio: labels.map(d=>snapMap[d]??null),
+        tasi: tasiF.map(x=>x.close),
+        sp500: labels.map(d=>spMap[d]??null),
+      });
+    }
+  }
+
+  /* ---------- ربط جميع الأحداث ---------- */
+  bindEvents(){
+    const $ = id => document.getElementById(id);
+    const ui = this.ui;
+    // التبويبات الرئيسية
+    $('mainTabs').addEventListener('click', e=>{
+      const b = e.target.closest('button[data-view]'); if(b) ui.switchView(b.dataset.view);
+    });
+    // تبويبات السجلات
+    $('recordTabs').addEventListener('click', e=>{
+      const b = e.target.closest('button[data-rec]');
+      if(b){ ui.activeRecord = b.dataset.rec; ui.renderRecords(); }
+    });
+    // إغلاق النوافذ
+    document.querySelectorAll('.modal-overlay').forEach(ov=>{
+      ov.addEventListener('click', e=>{
+        if(e.target===ov || e.target.closest('[data-close]')) ov.classList.remove('open');
+      });
+    });
+    // أحداث الجداول الديناميكية (تفويض على main)
+    document.querySelector('main').addEventListener('click', e=>{
+      const sellBtn = e.target.closest('[data-sell]');
+      if(sellBtn){ this.openSellModal(...sellBtn.dataset.sell.split(':').reverse()); return; }
+      const addBtn = e.target.closest('[data-addbuy]');
+      if(addBtn){ this.openBuyModal(addBtn.dataset.addbuy); return; }
+      const delLot = e.target.closest('[data-dellot]');
+      if(delLot && confirm('حذف صفقة الشراء نهائياً؟')){
+        const s = this.store.state;
+        s.lots = s.lots.filter(l=>l.id!==delLot.dataset.dellot);
+        this.store.save(); ui.renderRecords(); ui.toast('تم حذف الصفقة'); return;
+      }
+      const delDiv = e.target.closest('[data-deldiv]');
+      if(delDiv && confirm('حذف التوزيع؟')){
+        const s = this.store.state;
+        s.dividends = s.dividends.filter(d=>d.id!==delDiv.dataset.deldiv);
+        this.store.save(); ui.renderDividends(); ui.toast('تم الحذف'); return;
+      }
+      const delCash = e.target.closest('[data-delcash]');
+      if(delCash && confirm('حذف الحركة؟')){
+        const s = this.store.state;
+        s.cashMoves = s.cashMoves.filter(c=>c.id!==delCash.dataset.delcash);
+        this.store.save(); ui.renderCash(); ui.toast('تم الحذف'); return;
+      }
+    });
+    // البحث والفلترة والترتيب (تفويض input/change)
+    document.querySelector('main').addEventListener('input', e=>{
+      const sr = e.target.closest('[data-search]');
+      if(sr){
+        const v = sr.dataset.search;
+        ui.tableState[v].q = sr.value;
+        // إعادة رسم الجدول مع الحفاظ على تركيز مربع البحث
+        const pos = sr.selectionStart;
+        ui.renderPortfolioView(v);
+        const again = document.querySelector(`[data-search="${v}"]`);
+        again.focus(); again.setSelectionRange(pos,pos);
+      }
+    });
+    document.querySelector('main').addEventListener('change', e=>{
+      const so = e.target.closest('[data-sort]');
+      if(so){ ui.tableState[so.dataset.sort].sort = so.value; ui.renderPortfolioView(so.dataset.sort); return; }
+      const mf = e.target.closest('[data-filter-mkt]');
+      if(mf){ ui.tableState[mf.dataset.filterMkt].mkt = mf.value; ui.renderPortfolioView(mf.dataset.filterMkt); return; }
+    });
+    // الترويسة
+    $('refreshBtn').addEventListener('click', ()=> this.refreshPrices(true));
+    $('autoRefreshToggle').addEventListener('change', e=>{
+      this.store.state.settings.autoRefresh = e.target.checked;
+      this.store.save(); this.setupAutoRefresh();
+    });
+    $('themeBtn').addEventListener('click', ()=>{
+      document.body.classList.toggle('light');
+      this.store.state.settings.theme = document.body.classList.contains('light') ? 'light' : 'dark';
+      this.store.save();
+      if(this.ui.activeView==='charts') this.chartMgr.renderAll();
+    });
+    // نموذج الشراء
+    $('fetchPriceBtn').addEventListener('click', async ()=>{
+      const sym = $('buySymbol').value.trim(); if(!sym) return ui.toast('أدخل رمز السهم أولاً', false);
+      $('fetchPriceBtn').textContent = '...';
+      try{
+        const q = await this.prices.getQuote(this.prices.yahooSymbol(sym, $('buyMarket').value));
+        $('buyPrice').value = q.price;
+        if(!$('buyName').value && q.name) $('buyName').value = q.name;
+        ui.toast('تم جلب السعر: '+fmt.format(q.price));
+      }catch(e){ ui.toast('تعذر جلب السعر — تحقق من الرمز', false); }
+      $('fetchPriceBtn').textContent = 'جلب السعر';
+    });
+    $('saveBuyBtn').addEventListener('click', ()=> this.saveBuy());
+    ['buyQty','buyPrice','buyComm'].forEach(id=> $(id).addEventListener('input', ()=> this.updateBuyPreview()));
+    $('buyMarket').addEventListener('change', ()=> this.updateBuyPreview());
+    // نموذج البيع
+    ['sellQty','sellPrice','sellComm'].forEach(id=> $(id).addEventListener('input', ()=> this.updateSellPreview()));
+    $('confirmSellBtn').addEventListener('click', ()=> this.confirmSell());
+    // التوزيعات
+    $('addDivBtn').addEventListener('click', ()=> this.openDivModal());
+    $('saveDivBtn').addEventListener('click', ()=> this.saveDividend());
+    // الرصيد النقدي
+    $('depositBtn').addEventListener('click', ()=> this.openCashModal(1));
+    $('withdrawBtn').addEventListener('click', ()=> this.openCashModal(-1));
+    $('saveCashBtn').addEventListener('click', ()=> this.saveCashMove());
+    // الإعدادات
+    $('exportBtn').addEventListener('click', ()=> this.store.exportJSON());
+    $('importBtn').addEventListener('click', ()=> $('importFile').click());
+    $('importFile').addEventListener('change', e=>{
+      const f = e.target.files[0]; if(!f) return;
+      const r = new FileReader();
+      r.onload = ()=>{
+        try{ this.store.importJSON(r.result); location.reload(); }
+        catch(err){ ui.toast('فشل الاستيراد: ملف غير صالح', false); }
+      };
+      r.readAsText(f); e.target.value='';
+    });
+    $('backupBtn').addEventListener('click', ()=>{ this.store.backup(); ui.toast('تم حفظ نسخة احتياطية داخل المتصفح'); });
+    $('restoreBtn').addEventListener('click', ()=>{
+      if(!confirm('استبدال البيانات الحالية بالنسخة الاحتياطية؟')) return;
+      try{ this.store.restore(); location.reload(); }catch(e){ ui.toast(e.message, false); }
+    });
+    $('clearDemoBtn').addEventListener('click', ()=>{ if(confirm('مسح البيانات التجريبية؟')) this.clearDemoData(); });
+    $('wipeBtn').addEventListener('click', ()=>{
+      if(confirm('تنبيه: سيتم مسح جميع البيانات نهائياً. متابعة؟') && confirm('تأكيد أخير: مسح كل شيء؟')){
+        this.store.wipe(); location.reload();
+      }
+    });
+    $('saveSettingsBtn').addEventListener('click', ()=>{
+      const rate = parseFloat($('usdRateInput').value), iv = parseInt($('refreshIntervalInput').value);
+      if(rate>0) this.store.state.settings.usdToSar = rate;
+      if(iv>=20) this.store.state.settings.refreshInterval = iv;
+      this.store.save(); this.setupAutoRefresh(); ui.render();
+      ui.toast('تم حفظ الإعدادات');
+    });
+    $('copyReadmeBtn').addEventListener('click', ()=>{
+      navigator.clipboard.writeText($('readmeText').value).then(()=> ui.toast('تم نسخ README'));
+    });
+  }
+
+  /* ---------- نوافذ ومنطق الشراء ---------- */
+  openBuyModal(market){
+    if(market==='SA'||market==='US') document.getElementById('buyMarket').value = market;
+    document.getElementById('buyDate').value = todayStr();
+    ['buySymbol','buyName','buyQty','buyPrice','buyNotes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('buyComm').value = '0';
+    this.updateBuyPreview();
+    this.ui.openModal('buyModal');
+  }
+  /* معاينة حية: الرصيد المتاح + تكلفة الصفقة + المتبقي بعد الشراء */
+  updateBuyPreview(){
+    const g = id => document.getElementById(id).value;
+    const box = document.getElementById('buyPreview');
+    const cash = this.portfolio.cashBalance();
+    const market = g('buyMarket');
+    const qty = parseFloat(g('buyQty')), price = parseFloat(g('buyPrice'));
+    const comm = parseFloat(g('buyComm'))||0;
+    let html = `الرصيد النقدي المتاح: <b class="num ${cls(cash)}">${sar(cash)}</b>`;
+    if(qty>0 && price>0){
+      const cost = qty*price + comm;
+      const costSar = this.portfolio.toSAR(cost, market);
+      const after = cash - costSar;
+      html += `<br>إجمالي تكلفة الصفقة: <b class="num">${money(cost, market)}${market==='US'?` <span style="color:var(--text2);font-weight:500">(≈ ${sar(costSar)})</span>`:''}</b>
+        <br>المتبقي بعد الشراء: <b class="num ${cls(after)}">${sar(after)}</b>`;
+      if(after < -0.005) html += `<br><b style="color:var(--red)">الرصيد النقدي غير كافٍ لهذه الصفقة</b>`;
+    } else {
+      html += '<br>أدخل الكمية والسعر لعرض التكلفة';
+    }
+    box.innerHTML = html;
+  }
+  async saveBuy(){
+    const g = id => document.getElementById(id).value;
+    const symbol = g('buySymbol').trim().toUpperCase().replace(/\.SR$/i,'');
+    const market = g('buyMarket');
+    const qty = parseFloat(g('buyQty')), price = parseFloat(g('buyPrice'));
+    const date = g('buyDate'), comm = parseFloat(g('buyComm'))||0;
+    if(!symbol || !(qty>0) || !(price>0) || !date) return this.ui.toast('أكمل الحقول المطلوبة (رمز، كمية، سعر، تاريخ)', false);
+    // منع الشراء إذا كان الرصيد النقدي أقل من تكلفة الصفقة
+    const costSar = this.portfolio.toSAR(qty*price + comm, market);
+    if(costSar > this.portfolio.cashBalance() + 0.005)
+      return this.ui.toast('الرصيد النقدي غير كافٍ — أودع مبلغاً من تبويب الرصيد النقدي أولاً', false);
+    const lot = {id:uid(), symbol, name:g('buyName').trim(), market, qty, remainingQty:qty,
+      buyPrice:price, buyDate:date, commission:comm, notes:g('buyNotes').trim()};
+    this.store.state.lots.push(lot);
+    this.store.save();
+    this.ui.closeModal('buyModal');
+    this.ui.render();
+    this.ui.toast(`تمت إضافة صفقة ${symbol} وخُصم ${sar(costSar)} من الرصيد النقدي`);
+    // جلب السعر والاسم تلقائياً في الخلفية
+    this.prices.getQuote(this.prices.yahooSymbol(symbol, market)).then(q=>{
+      if(!lot.name && q.name){ lot.name = q.name; }
+      this.store.save(); this.ui.render();
+    }).catch(()=>{});
+  }
+
+  /* ---------- نوافذ ومنطق البيع ---------- */
+  openSellModal(symbol, market){
+    const pos = this.portfolio.positions(market).find(p=>p.symbol===symbol);
+    if(!pos) return;
+    this.ui.sellCtx = {symbol, market, max: pos.qty, avgCost: pos.avgCost};
+    document.getElementById('sellTitle').textContent = symbol + (market==='SA'?' (سعودي)':' (أمريكي)');
+    document.getElementById('sellMax').textContent = fmt0.format(pos.qty);
+    document.getElementById('sellQty').value = '';
+    document.getElementById('sellQty').max = pos.qty;
+    document.getElementById('sellPrice').value = pos.price ?? '';
+    document.getElementById('sellDate').value = todayStr();
+    document.getElementById('sellComm').value = '0';
+    this.updateSellPreview();
+    this.ui.openModal('sellModal');
+  }
+  updateSellPreview(){
+    const ctx = this.ui.sellCtx; if(!ctx) return;
+    const qty = parseFloat(document.getElementById('sellQty').value);
+    const price = parseFloat(document.getElementById('sellPrice').value);
+    const comm = parseFloat(document.getElementById('sellComm').value)||0;
+    const box = document.getElementById('sellPreview');
+    if(!(qty>0) || !(price>0)){ box.textContent = 'أدخل الكمية والسعر لمعاينة النتيجة'; box.style.color=''; return; }
+    const pnl = qty*(price - ctx.avgCost) - comm;
+    const pctV = pnl/(qty*ctx.avgCost)*100;
+    box.innerHTML = `متوسط التكلفة: <b class="num">${fmt.format(ctx.avgCost)}</b> —
+      النتيجة المتوقعة: <b class="num ${cls(pnl)}">${money(pnl, ctx.market)} (${pct(pctV)})</b>`;
+  }
+  confirmSell(){
+    const ctx = this.ui.sellCtx; if(!ctx) return;
+    const qty = parseFloat(document.getElementById('sellQty').value);
+    const price = parseFloat(document.getElementById('sellPrice').value);
+    const date = document.getElementById('sellDate').value;
+    const comm = parseFloat(document.getElementById('sellComm').value)||0;
+    if(!(qty>0) || !(price>0) || !date) return this.ui.toast('أكمل بيانات البيع', false);
+    if(qty > ctx.max + 1e-9) return this.ui.toast('الكمية أكبر من المتاح', false);
+    try{
+      const sale = this.portfolio.sell({symbol:ctx.symbol, market:ctx.market, qty, sellPrice:price, sellDate:date, sellCommission:comm});
+      this.ui.closeModal('sellModal');
+      this.ui.render();
+      const proceeds = this.portfolio.toSAR(sale.qty*sale.sellPrice - sale.sellCommission, sale.market);
+      this.ui.toast(sale.pnl>=0
+        ? `صفقة رابحة: ${money(sale.pnl, sale.market)} — أُضيف ${sar(proceeds)} للرصيد النقدي`
+        : `صفقة خاسرة: ${money(sale.pnl, sale.market)} — أُضيف ${sar(proceeds)} للرصيد النقدي`, sale.pnl>=0);
+    }catch(e){ this.ui.toast(e.message, false); }
+  }
+
+  /* ---------- التوزيعات ---------- */
+  openDivModal(){
+    const sel = document.getElementById('divSymbol');
+    const pos = this.portfolio.positions('ALL');
+    // قائمة الأسهم الحالية + أي أسهم سبق تداولها
+    const seen = new Set();
+    const opts = [];
+    for(const p of pos){ const k = p.market+':'+p.symbol; if(!seen.has(k)){ seen.add(k); opts.push(p); } }
+    for(const l of this.store.state.lots){ const k = l.market+':'+l.symbol; if(!seen.has(k)){ seen.add(k); opts.push(l); } }
+    sel.innerHTML = opts.map(p=>`<option value="${p.market}:${p.symbol}">${p.symbol} — ${p.name||''} (${p.market==='SA'?'سعودي':'أمريكي'})</option>`).join('')
+      || '<option value="">لا توجد أسهم</option>';
+    document.getElementById('divDate').value = todayStr();
+    document.getElementById('divAmount').value = '';
+    this.ui.openModal('divModal');
+  }
+  saveDividend(){
+    const v = document.getElementById('divSymbol').value;
+    const date = document.getElementById('divDate').value;
+    const amount = parseFloat(document.getElementById('divAmount').value);
+    if(!v || !date || !(amount>0)) return this.ui.toast('أكمل بيانات التوزيع', false);
+    const [market, symbol] = v.split(':');
+    this.store.state.dividends.push({id:uid(), symbol, market, date, amount});
+    this.store.save();
+    this.ui.closeModal('divModal');
+    this.ui.render(); this.ui.renderDividends();
+    this.ui.toast('تمت إضافة التوزيع وإضافته للرصيد النقدي');
+  }
+
+  /* ---------- الإيداع والسحب ---------- */
+  openCashModal(sign){
+    this._cashSign = sign;
+    document.getElementById('cashModalTitle').textContent = sign>0 ? 'إيداع نقدي' : 'سحب نقدي';
+    document.getElementById('cashDate').value = todayStr();
+    document.getElementById('cashAmount').value = '';
+    document.getElementById('cashNote').value = '';
+    this.ui.openModal('cashModal');
+  }
+  saveCashMove(){
+    const amount = parseFloat(document.getElementById('cashAmount').value);
+    const date = document.getElementById('cashDate').value;
+    if(!(amount>0) || !date) return this.ui.toast('أدخل المبلغ والتاريخ', false);
+    this.store.state.cashMoves.push({id:uid(), date, amount: amount*this._cashSign,
+      note: document.getElementById('cashNote').value.trim()});
+    this.store.save();
+    this.ui.closeModal('cashModal');
+    this.ui.renderCash(); this.ui.render();
+    this.ui.toast('تم الحفظ');
+  }
+
+  /* ---------- README ---------- */
+  setReadme(){
+    document.getElementById('readmeText').value =
+`# محفظتي — لوحة إدارة المحفظة الاستثمارية
+
+تطبيق ويب في ملف واحد (index.html) لإدارة ومتابعة محفظتك الاستثمارية
+في السوق السعودي والأمريكي. يعمل بالكامل في المتصفح بدون خادم،
+ويحفظ بياناتك في LocalStorage، ويجلب الأسعار من Yahoo Finance.
+
+## 1) رفع المشروع إلى GitHub
+
+1. أنشئ حساباً على github.com إن لم يكن لديك.
+2. اضغط زر "New repository" وأنشئ مستودعاً جديداً باسم مثل: my-portfolio
+   (اختر Public ليعمل GitHub Pages مجاناً).
+3. داخل صفحة المستودع اضغط "Add file" > "Upload files".
+4. ارفع ملف index.html ثم اضغط "Commit changes".
+
+أو عبر سطر الأوامر:
+
+    git init
+    git add index.html
+    git commit -m "إضافة تطبيق المحفظة"
+    git branch -M main
+    git remote add origin https://github.com/USERNAME/my-portfolio.git
+    git push -u origin main
+
+## 2) تفعيل GitHub Pages
+
+1. من صفحة المستودع: Settings > Pages.
+2. تحت "Build and deployment" اختر:
+   - Source: Deploy from a branch
+   - Branch: main — المجلد: / (root)
+3. اضغط Save وانتظر دقيقة.
+4. سيظهر رابط تطبيقك: https://USERNAME.github.io/my-portfolio/
+
+## 3) تحديث التطبيق
+
+1. عدّل ملف index.html محلياً.
+2. ارفع الملف الجديد من "Add file" > "Upload files" (سيستبدل القديم)،
+   أو عبر سطر الأوامر:
+
+    git add index.html
+    git commit -m "تحديث"
+    git push
+
+3. ينعكس التحديث على الرابط خلال دقيقة تقريباً.
+
+## ملاحظات مهمة
+
+- بياناتك محفوظة في متصفحك فقط (LocalStorage) ولا تُرسل لأي خادم.
+- استخدم "تصدير JSON" بانتظام كنسخة احتياطية خارجية.
+- الأسعار من Yahoo Finance وقد تتأخر دقائق عن السوق المباشر.
+- رموز السوق السعودي رقمية (مثل 2222 لأرامكو) وتُحوّل تلقائياً إلى 2222.SR.
+`;
+  }
+
+  /* ---------- التشغيل ---------- */
+  init(){
+    // المظهر
+    if(this.store.state.settings.theme==='light') document.body.classList.add('light');
+    document.getElementById('autoRefreshToggle').checked = this.store.state.settings.autoRefresh;
+    document.getElementById('usdRateInput').value = this.store.state.settings.usdToSar;
+    document.getElementById('refreshIntervalInput').value = this.store.state.settings.refreshInterval;
+    this.injectDemoData();
+    this.migrateCash();
+    this.setReadme();
+    this.bindEvents();
+    this.ui.render();
+    // عرض الأداء من آخر أسعار مخزنة فوراً ثم التحديث من الشبكة
+    this.ui.renderHeaderPerf();
+    this.refreshPrices(false);
+    this.setupAutoRefresh();
+  }
+}
+
+const app = new App();
+app.init();
+</script>
+</body>
+</html>
