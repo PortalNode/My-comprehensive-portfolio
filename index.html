@@ -136,6 +136,8 @@ tr:hover td{background:rgba(79,140,255,.05)}
   background:var(--bg3);border:1px solid var(--border);border-radius:8px;
   padding:3px 9px;font-weight:800;font-size:12.5px;direction:ltr;
 }
+.stock-id{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.stock-name{font-weight:700;color:var(--text)}
 .mkt-badge{font-size:11.5px;padding:2px 9px;border-radius:20px;font-weight:700}
 .mkt-SA{background:rgba(38,194,129,.15);color:var(--green)}
 .mkt-US{background:rgba(79,140,255,.15);color:var(--accent)}
@@ -1168,6 +1170,16 @@ class UI {
     document.querySelectorAll('#recordTabs button').forEach(b=>b.classList.toggle('active', b.dataset.rec===this.activeRecord));
     const wrap = document.getElementById('recordsTable');
     const mkt = m => `<span class="mkt-badge mkt-${m}">${m==='SA'?'سعودي':'أمريكي'}</span>`;
+    const saleName = x => {
+      const lotName = s.lots.find(l=>l.symbol===x.symbol && l.market===x.market && l.name)?.name;
+      const ySymbol = this.app.prices.yahooSymbol(x.symbol, x.market);
+      const cachedName = this.app.prices.cached(ySymbol)?.name;
+      return displayName(x.symbol, x.market, x.name || lotName || cachedName || '');
+    };
+    const stockId = x => {
+      const name = saleName(x);
+      return `<div class="stock-id">${name ? `<span class="stock-name" dir="auto">${name}</span>` : ''}<span class="sym-badge">${x.symbol}</span></div>`;
+    };
     if(this.activeRecord==='buys'){
       const lots = [...s.lots].sort((a,b)=>b.buyDate.localeCompare(a.buyDate));
       wrap.innerHTML = lots.length===0 ? '<div class="empty-msg">لا توجد مشتريات</div>' : `
@@ -1198,10 +1210,10 @@ class UI {
       <span>نسبته من قيمة المحفظة: <b class="num ${cls(totalSar)}">${pct(pv>0 ? totalSar/pv*100 : 0)}</b></span>
     </div>`;
     wrap.innerHTML = sales.length===0 ? '<div class="empty-msg">لا توجد عمليات</div>' : summary + `
-      <table><thead><tr><th>الرمز</th><th>السوق</th><th>تاريخ الشراء</th><th>تاريخ البيع</th><th>الكمية</th>
+      <table><thead><tr><th>اسم السهم / الرمز</th><th>السوق</th><th>تاريخ الشراء</th><th>تاريخ البيع</th><th>الكمية</th>
       <th>متوسط التكلفة</th><th>سعر البيع</th><th>عمولة البيع</th><th>الربح/الخسارة</th><th>النسبة</th></tr></thead><tbody>
       ${sales.map(x=>`<tr>
-        <td><span class="sym-badge">${x.symbol}</span></td><td>${mkt(x.market)}</td>
+        <td>${stockId(x)}</td><td>${mkt(x.market)}</td>
         <td class="num">${x.buyDate}</td><td class="num">${x.sellDate}</td>
         <td class="num">${fmt0.format(x.qty)}</td><td class="num">${fmt.format(x.avgCost)}</td>
         <td class="num">${fmt.format(x.sellPrice)}</td><td class="num">${fmt.format(x.sellCommission)}</td>
