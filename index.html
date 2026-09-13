@@ -652,15 +652,15 @@ class Store {
 }
 
 /* ============================================================================
-   PriceService — جلب الأسعار من Yahoo Finance مع سلسلة CORS proxies احتياطية
+   PriceService — جلب مجاني للأسعار من Yahoo Finance عبر مسارات CORS احتياطية
    ============================================================================ */
 class PriceService {
   constructor(store){
     this.store = store;
-    // محاولة مباشرة أولاً ثم proxies بالترتيب — يتذكر الناجح في الجلسة
+    // GitHub Pages لا يستطيع الاتصال بـ Yahoo مباشرة بسبب CORS.
+    // r.jina.ai هو المسار الأساسي المجاني، والمساران التاليان احتياطيان فقط.
     this.proxies = [
-      u => u,
-      u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+      u => 'https://r.jina.ai/' + u,
       u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
       u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
     ];
@@ -670,26 +670,37 @@ class PriceService {
   yahooSymbol(symbol, market){
     return market === 'SA' ? symbol.toUpperCase() + '.SR' : symbol.toUpperCase();
   }
+  parsePayload(text){
+    const trimmed = text.trim();
+    if(trimmed.startsWith('{')) return JSON.parse(trimmed);
+    // r.jina.ai يعيد المحتوى النصي بعد هذا العنوان.
+    const marker = 'Markdown Content:';
+    const start = trimmed.indexOf(marker);
+    const payload = start >= 0 ? trimmed.slice(start + marker.length).trim() : trimmed;
+    const firstBrace = payload.indexOf('{');
+    const lastBrace = payload.lastIndexOf('}');
+    if(firstBrace < 0 || lastBrace < firstBrace) throw new Error('استجابة أسعار غير صالحة');
+    return JSON.parse(payload.slice(firstBrace, lastBrace + 1));
+  }
   async fetchWithFallback(url){
     const order = this.workingProxy !== null
       ? [this.proxies[this.workingProxy], ...this.proxies.filter((_,i)=>i!==this.workingProxy)]
       : this.proxies;
     for(const wrap of order){
       try{
-        const res = await fetch(wrap(url), {signal: AbortSignal.timeout(12000)});
+        const res = await fetch(wrap(url), {signal: AbortSignal.timeout(8000)});
         if(!res.ok) continue;
-        const json = await res.json();
-        if(json && json.chart) { this.workingProxy = this.proxies.indexOf(wrap); return json; }
+        const json = this.parsePayload(await res.text());
+        if(json && (json.chart || json.spark)) {
+          this.workingProxy = this.proxies.indexOf(wrap);
+          return json;
+        }
       }catch(e){ /* جرّب التالي */ }
     }
     throw new Error('تعذر الوصول إلى Yahoo Finance');
   }
-  /* جلب السعر الحالي + الإغلاق السابق + الاسم */
-  async getQuote(ySymbol){
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySymbol)}?range=1d&interval=1d`;
-    const json = await this.fetchWithFallback(url);
-    const meta = json.chart?.result?.[0]?.meta;
-    if(!meta || meta.regularMarketPrice == null) throw new Error('رمز غير معروف: '+ySymbol);
+  quoteFromMeta(meta){
+    if(!meta || meta.regularMarketPrice == null) return null;
     const quote = {
       price: meta.regularMarketPrice,
       prevClose: meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice,
@@ -697,12 +708,40 @@ class PriceService {
       currency: meta.currency || '',
       ts: Date.now()
     };
-    this.store.state.priceCache[ySymbol] = quote;
+    return quote;
+  }
+  /* جلب عدة أسعار في طلب واحد لتقليل التأخير وحدود الخدمة المجانية */
+  async getQuotes(ySymbols){
+    const symbols = [...new Set(ySymbols.filter(Boolean))];
+    const quotes = {};
+    for(let i=0;i<symbols.length;i+=40){
+      const chunk = symbols.slice(i,i+40);
+      const encoded = chunk.map(encodeURIComponent).join('%2C');
+      const url = `https://query2.finance.yahoo.com/v7/finance/spark?symbols=${encoded}&range=1d&interval=1d`;
+      try{
+        const json = await this.fetchWithFallback(url);
+        for(const item of json.spark?.result || []){
+          const meta = item.response?.[0]?.meta;
+          const quote = this.quoteFromMeta(meta);
+          if(quote){
+            quotes[item.symbol] = quote;
+            this.store.state.priceCache[item.symbol] = quote;
+          }
+        }
+      }catch(e){ /* أكمل الدفعات الأخرى واحتفظ بكاش الرموز المتعذرة */ }
+    }
+    return quotes;
+  }
+  /* جلب سعر واحد للنماذج والعمليات الفردية */
+  async getQuote(ySymbol){
+    const quotes = await this.getQuotes([ySymbol]);
+    const quote = quotes[ySymbol];
+    if(!quote) throw new Error('رمز غير معروف: '+ySymbol);
     return quote;
   }
   /* بيانات تاريخية للمؤشرات والمقارنة */
   async getHistory(ySymbol, range='3mo'){
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySymbol)}?range=${range}&interval=1d`;
+    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySymbol)}?range=${range}&interval=1d`;
     const json = await this.fetchWithFallback(url);
     const r = json.chart?.result?.[0];
     if(!r) throw new Error('لا توجد بيانات');
@@ -1283,6 +1322,7 @@ class App {
     this.chartMgr = new ChartManager(this.portfolio);
     this.ui = new UI(this);
     this.refreshTimer = null;
+    this.refreshingPrices = false;
     this.indexHistory = {}; // كاش بيانات المؤشرات التاريخية للمقارنة
   }
 
@@ -1365,28 +1405,37 @@ class App {
 
   /* ---------- تحديث الأسعار (المؤشرات + كل أسهم المحفظة) ---------- */
   async refreshPrices(manual=false){
+    if(this.refreshingPrices){
+      if(manual) this.ui.toast('تحديث الأسعار جارٍ بالفعل');
+      return;
+    }
+    this.refreshingPrices = true;
     const dot = document.getElementById('statusDot');
     dot.className = 'status-dot wait';
-    const symbols = new Set();
-    for(const l of this.store.state.lots)
-      if(l.remainingQty>1e-9) symbols.add(this.prices.yahooSymbol(l.symbol, l.market));
-    let tasi=null, sp=null, failures=0;
-    // المؤشران أولاً ثم الأسهم — على دفعات متوازية صغيرة
-    try{ tasi = await this.prices.getQuote('^TASI.SR'); }catch(e){ failures++; }
-    try{ sp = await this.prices.getQuote('^GSPC'); }catch(e){ failures++; }
-    const list = [...symbols];
-    for(let i=0;i<list.length;i+=4){
-      await Promise.all(list.slice(i,i+4).map(sym =>
-        this.prices.getQuote(sym).catch(()=>{ failures++; })));
+    try{
+      const symbols = new Set();
+      for(const l of this.store.state.lots)
+        if(l.remainingQty>1e-9) symbols.add(this.prices.yahooSymbol(l.symbol, l.market));
+      const requested = ['^TASI.SR', '^GSPC', ...symbols];
+      let quotes = {}, failures = requested.length;
+      try{
+        quotes = await this.prices.getQuotes(requested);
+        failures = requested.filter(sym => !quotes[sym]).length;
+      }catch(e){ /* حافظ على آخر أسعار مخزنة عند تعذر الشبكة */ }
+      const tasi = quotes['^TASI.SR'] || this.prices.cached('^TASI.SR');
+      const sp = quotes['^GSPC'] || this.prices.cached('^GSPC');
+      this.store.save();
+      this.portfolio.takeSnapshot(tasi?.price, sp?.price);
+      this.ui.renderHeaderPerf();
+      if(Object.keys(quotes).length)
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+      dot.className = 'status-dot ' + (failures===0 ? 'ok' : (failures < requested.length ? 'wait' : 'err'));
+      this.ui.render();
+      if(this.ui.activeView==='charts') this.chartMgr.renderAll();
+      if(manual) this.ui.toast(failures===0 ? 'تم تحديث الأسعار بنجاح' : `تم التحديث مع ${failures} رمز متعذر`, failures===0);
+    }finally{
+      this.refreshingPrices = false;
     }
-    this.store.save();
-    this.portfolio.takeSnapshot(tasi?.price, sp?.price);
-    this.ui.renderHeaderPerf();
-    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-    dot.className = 'status-dot ' + (failures===0 ? 'ok' : (failures < list.length+2 ? 'wait' : 'err'));
-    this.ui.render();
-    if(this.ui.activeView==='charts') this.chartMgr.renderAll();
-    if(manual) this.ui.toast(failures===0 ? 'تم تحديث الأسعار بنجاح' : `تم التحديث مع ${failures} رمز متعذر`, failures===0);
   }
   setupAutoRefresh(){
     clearInterval(this.refreshTimer);
