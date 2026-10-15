@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
    متغيرات الألوان — الوضع الداكن افتراضي
@@ -27,7 +27,7 @@ body.light{
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{
-  font-family:'Tajawal',-apple-system,'Segoe UI',Tahoma,sans-serif;
+  font-family:'Alexandria',-apple-system,'Segoe UI',Tahoma,sans-serif;
   background:var(--bg); color:var(--text); min-height:100vh;
   font-size:15px; line-height:1.55;
 }
@@ -934,7 +934,7 @@ class ChartManager {
             font: ctx => {
               // السطر الأول (الاسم) أعرض قليلاً من النسبة
               const big = ctx.dataset.data[ctx.dataIndex]/sum >= 0.15;
-              return {weight:'bold', size: big ? 12 : 10.5, family:'Tajawal', lineHeight:1.25};
+              return {weight:'bold', size: big ? 12 : 10.5, family:'Alexandria', lineHeight:1.25};
             },
             textShadowBlur:6, textShadowColor:'rgba(0,0,0,.55)',
           }
@@ -954,7 +954,7 @@ class ChartManager {
     const {text, grid} = this.colors();
     Chart.defaults.color = text;
     Chart.defaults.borderColor = grid;
-    Chart.defaults.font.family = 'Tajawal';
+    Chart.defaults.font.family = 'Alexandria';
     this.charts[id] = new Chart(el, config);
   }
   renderAll(){
@@ -1007,7 +1007,7 @@ class ChartManager {
           // نسبة المركز من إجمالي المحفظة على طرف الشريط
           datalabels:{display:true, anchor:'end', align:'start',
             formatter: v => fmt.format(v/total*100)+'%',
-            color:'#fff', font:{weight:'bold', size:11, family:'Tajawal'}}},
+            color:'#fff', font:{weight:'bold', size:11, family:'Alexandria'}}},
         scales:{x:{ticks:{callback:v=>fmt0.format(v)}}}}
     });
   }
