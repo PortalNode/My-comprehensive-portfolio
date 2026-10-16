@@ -310,6 +310,10 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
 .compare-explain{padding:17px 20px;margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);
   border-radius:var(--radius);color:var(--text2);font-size:13px;line-height:1.8}
 .compare-explain strong{color:var(--text)}
+.compare-terms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.compare-terms div{padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg)}
+.compare-terms strong{display:block;margin-bottom:3px}
+@media(max-width:700px){.compare-terms{grid-template-columns:1fr}}
 .compare-chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
 .compare-chart-head h3{margin:0}.compare-chart-head select{width:auto;min-width:170px}
 .compare-unavailable{padding:18px;color:var(--text2);font-size:13px;text-align:center}
@@ -469,7 +473,13 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
 <section class="view" id="view-compare">
   <div class="compare-explain"><strong>منهجية المقارنة:</strong> تقيس الخطوط السعرية تغير قيمة الأسهم أثناء الاحتفاظ بها، وتربط عوائد الفترات بعد استبعاد أثر الشراء والبيع؛ لا تشمل النقد أو التوزيعات أو العمولات. تقارن السعودية بتاسي السعري، والأمريكية بمؤشر S&amp;P 500 السعري. تُعرض التوزيعات السعودية المسجلة في خط منفصل، دون حساب فرق مع مؤشر سعري لا يشمل توزيعات السوق.
     تُعامل الصفقات كأن أثرها يبدأ بعد إغلاق يوم تنفيذها؛ فلا تدخل نتيجة شراء وبيع السهم في اليوم نفسه في الخط السعري. يبدأ خط كل سوق من أول إغلاق متاح بعد أول شراء.
-    تتطلب المقارنة الشاملة إغلاقات يومية متصلة للمؤشرين، وتزن عائد كل مؤشر بقيمة الأسهم المستثمرة في سوقه عند بداية كل فترة، مع تحويل الدولار إلى الريال بالسعر المحدد في الإعدادات. لأن إغلاقات تاسي القديمة في المصدر التلقائي أسبوعية، يبدأ الخط الشامل من أول مقطع يومي مشترك متاح؛ ولا يُنسب له أداء منذ تأسيس المحفظة ما لم تتوفر بيانات يومية تغطي تلك الفترة.</div>
+    تتطلب المقارنة الشاملة إغلاقات يومية متصلة للمؤشرين، وتزن عائد كل مؤشر بقيمة الأسهم المستثمرة في سوقه عند بداية كل فترة، مع تحويل الدولار إلى الريال بالسعر المحدد في الإعدادات. لأن إغلاقات تاسي القديمة في المصدر التلقائي أسبوعية، يبدأ الخط الشامل من أول مقطع يومي مشترك متاح؛ ولا يُنسب له أداء منذ تأسيس المحفظة ما لم تتوفر بيانات يومية تغطي تلك الفترة.
+    <div class="compare-terms">
+      <div><strong>عائد أسهمك</strong>تغير أسعار الأسهم التي امتلكتها خلال الفترة، بعد عزل أثر الشراء والبيع. صف التوزيعات يضيف توزيعاتك المسجلة على حدة.</div>
+      <div><strong>عائد المرجع</strong>تغير المؤشر السعري في الفترة نفسها: تاسي للسعودية، وS&amp;P 500 للأمريكية، ومزيج منهما للشاملة.</div>
+      <div><strong>الفرق بينهما</strong>طرح عائد المرجع من عائد أسهمك يعطي نقاطًا مئوية. والتفوق النسبي يقارن قيمة استثمار افتراضي متساوٍ في نهاية الفترة.</div>
+    </div>
+    <p style="margin-top:12px">عند تفعيل التحديث التلقائي، تُراجع الأسعار التاريخية في صفحة المقارنة كل 30 دقيقة، وعند العودة إلى التبويب. كما يُحدَّث الحساب عند فتح الصفحة أو الضغط على «تحديث». يستمر ذلك مع الأيام والسنوات بقدر توفر بيانات المصدر؛ ولا تُملأ إغلاقات تاسي اليومية المفقودة بقيم مفترضة.</p></div>
   <div class="panel">
     <div class="panel-head"><h2>مقارنة أداء المحفظة مع المؤشرات</h2>
       <span class="last-update" id="compareNote"></span></div>
@@ -2268,7 +2278,7 @@ class App {
       if(this.ui.activeView==='charts'){
         this.chartMgr.renderAll();this.renderMonthly();
       }
-      if(this.ui.activeView==='compare') this.renderCompare();
+      if(this.ui.activeView==='compare') this.renderCompare(manual);
       if(manual) this.ui.toast(failures===0 ? 'تم تحديث الأسعار بنجاح' : `تم التحديث مع ${failures} رمز متعذر`, failures===0);
     }finally{
       this.refreshingPrices = false;
@@ -2380,7 +2390,7 @@ class App {
   }
 
   /* ---------- مقارنة الأداء ---------- */
-  async renderCompare(){
+  async renderCompare(force=false){
     const pf = this.portfolio;
     const tbl = document.getElementById('compareTable');
     const note = document.getElementById('compareNote');
@@ -2391,27 +2401,39 @@ class App {
     const days = first ? dayNumber(asOf)-dayNumber(first) : 0;
     const range = days<=85?'3mo':days<=175?'6mo':days<=360?'1y':days<=720?'2y':days<=1800?'5y':'max';
     if(this.indexHistory.range!==range) this.indexHistory={range};
+    const now=Date.now(),historyTTL=30*60*1000;
+    const needsHistory=lastFetch=>force||!Number.isFinite(lastFetch)||now-lastFetch>=historyTTL;
     note.textContent = 'جاري تحميل بيانات المؤشرات...';
-    if(saSymbols.length&&this.indexHistory.tasiFetchedDay!==asOf){
-      try{this.indexHistory.tasi=await this.prices.getTasiHistory();}
+    if(saSymbols.length&&needsHistory(this.indexHistory.tasiFetchedAt)){
+      let fetched=false;
+      try{
+        const daily=await this.prices.getTasiHistory();
+        if(!daily.length) throw new Error('تاريخ تاسي فارغ');
+        this.indexHistory.tasi=daily;fetched=true;
+      }
       catch(error){
         try{this.indexHistory.tasi=(await this.prices.getHistory('^TASI.SR',range))
-          .map(p=>({...p,source:'yahoo'}));}
+          .map(p=>({...p,source:'yahoo'}));fetched=true;}
         catch(fallbackError){this.indexHistory.tasi=[];}
       }
-      this.indexHistory.tasiFetchedDay=asOf;
+      this.indexHistory.tasiFetchedAt=fetched?now:now-historyTTL+5*60*1000;
     }
-    if(usSymbols.length&&!this.indexHistory.sp){
-      try{this.indexHistory.sp=await this.prices.getHistory('^GSPC',range);}
-      catch(error){/* ستظهر حالة عدم توفر المرجع في الجدول */}
+    if(usSymbols.length&&needsHistory(this.indexHistory.spFetchedAt)){
+      let refreshed=false;
+      try{
+        const fetched=await this.prices.getHistory('^GSPC',range);
+        if(fetched.length>=2){this.indexHistory.sp=fetched;refreshed=true;}
+      }catch(error){/* استخدم آخر إغلاقات محفوظة في الذاكرة ثم أعد المحاولة */}
+      this.indexHistory.spFetchedAt=refreshed?now:now-historyTTL+5*60*1000;
     }
     const mergedTasi=mergeTasiHistory(state.tasiHistory,this.indexHistory.tasi);
     if(JSON.stringify(mergedTasi)!==JSON.stringify(state.tasiHistory||[])){
       state.tasiHistory=mergedTasi;this.store.save();
     }
     this.indexHistory.tasi=mergedTasi;
-    if(this.indexHistory.saStocksDay!==asOf){
-      this.indexHistory.saStocks={};this.indexHistory.saSplits={};this.indexHistory.saStocksDay=asOf;
+    if(needsHistory(this.indexHistory.saStocksFetchedAt)){
+      this.indexHistory.saStocks={};this.indexHistory.saSplits={};
+      this.indexHistory.saStocksFetchedAt=now;
     }
     const priorStockCache=state.stockHistoryCache||{};
     const priorSplitCache=state.stockSplitCache||{};
@@ -2439,8 +2461,9 @@ class App {
         state.stockHistoryCache=priorStockCache;state.stockSplitCache=priorSplitCache;
       }
     }
-    if(this.indexHistory.usStocksDay!==asOf){
-      this.indexHistory.usStocks={};this.indexHistory.usSplits={};this.indexHistory.usStocksDay=asOf;
+    if(needsHistory(this.indexHistory.usStocksFetchedAt)){
+      this.indexHistory.usStocks={};this.indexHistory.usSplits={};
+      this.indexHistory.usStocksFetchedAt=now;
     }
     const priorUSCache=state.usHistoryCache||{};
     const priorUSSplits=state.usSplitCache||{};
@@ -2496,14 +2519,16 @@ class App {
         caveat:'الفترة اليومية المشتركة فقط؛ أوزان السوقين تتغير مع قيمة الأسهم المحتفظ بها.'},
     ];
     const displayReturn = r => r ? `${pct(r.period)}${r.days>=365?`<small class="sub-sar">سنويًا ${pct(r.annual)}</small>`:''}` : '—';
-    tbl.innerHTML = `<thead><tr><th>المقارنة</th><th>فترة القياس</th><th>العائد المحسوب</th>
-      <th>عائد المرجع</th><th>الفرق بالنقاط المئوية</th><th>حالة البيانات</th></tr></thead><tbody>
+    tbl.innerHTML = `<thead><tr><th>المقارنة</th><th>فترة القياس</th><th>عائد أسهمك</th>
+      <th>عائد المرجع</th><th>الفرق<small class="sub-sar">نقطة مئوية ونسبة نسبية</small></th><th>حالة البيانات</th></tr></thead><tbody>
       ${rows.map(({label,result:r,fair,caveat})=>{
         const diff=fair&&r.actual&&r.benchmark?r.actual.period-r.benchmark.period:null;
+        const relative=diff!=null&&r.benchmark.period>-100
+          ?(100+r.actual.period)/(100+r.benchmark.period)*100-100:null;
         return `<tr><td style="white-space:normal">${label}</td><td class="num">${r.from&&r.through?`${r.from}<br><small class="sub-sar">إلى ${r.through}</small>`:'—'}</td>
           <td class="num ${r.actual?cls(r.actual.period):''}">${displayReturn(r.actual)}</td>
           <td class="num ${r.benchmark?cls(r.benchmark.period):''}">${displayReturn(r.benchmark)}</td>
-          <td class="num ${diff!=null?cls(diff):''}">${diff!=null?fmt.format(diff)+' نقطة':'—'}</td>
+          <td class="num ${diff!=null?cls(diff):''}">${diff!=null?`${diff>=0?'+':''}${fmt.format(diff)} نقطة مئوية${relative!=null?`<small class="sub-sar">${pct(relative)} ${relative>=0?'تفوق نسبي':'تأخر نسبي'}</small>`:''}`:'—'}</td>
           <td style="white-space:normal;min-width:230px;color:var(--text2)">${htmlEscape(r.reason||caveat||'الأسعار التاريخية مكتملة للفترة المعروضة.')}</td></tr>`;
       }).join('')}</tbody>`;
     note.textContent = `حساب ${asOf} · كل صف ينتهي بآخر إغلاق متاح له · الشاملة من أول مقطع يومي مشترك`;
@@ -2571,6 +2596,9 @@ class App {
   bindEvents(){
     const $ = id => document.getElementById(id);
     const ui = this.ui;
+    document.addEventListener('visibilitychange',()=>{
+      if(!document.hidden&&this.store.state.settings.autoRefresh) this.refreshPrices(false);
+    });
     // التبويبات الرئيسية
     $('mainTabs').addEventListener('click', e=>{
       const b = e.target.closest('button[data-view]'); if(b) ui.switchView(b.dataset.view);
