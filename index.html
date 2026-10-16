@@ -463,7 +463,7 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
 
 <!-- ===== مقارنة الأداء ===== -->
 <section class="view" id="view-compare">
-  <div class="compare-explain"><strong>منهجية المقارنة:</strong> للمحفظة السعودية يُقاس تغير أسعار الأسهم المحتفظ بها عند إغلاق الجلسات، وتُضم عوائد الأيام المتتالية بعد استبعاد أثر المشتريات والمبيعات. يُقارن خط أسعار الأسهم دون توزيعات بتاسي السعري من تاريخ أساس واحد. يظهر خط ثالث يضيف التوزيعات المستلمة في تاريخ تسجيلها مع افتراض إعادة استثمارها حسابيًا؛ لا يُحسب فرق لهذا الخط مع تاسي السعري لأنه لا يشمل توزيعات السوق. تُعامل الصفقة المنفذة خلال الجلسة كأن أثرها يبدأ من إغلاق تلك الجلسة.
+  <div class="compare-explain"><strong>منهجية المقارنة:</strong> للمحفظة السعودية يُقاس تغير أسعار الأسهم المحتفظ بها عند إغلاق الجلسات، وتُضم عوائد الأيام المتتالية بعد استبعاد أثر المشتريات والمبيعات. يُقارن خط أسعار الأسهم دون توزيعات بتاسي السعري من تاريخ أساس واحد. يظهر خط ثالث يضيف التوزيعات المستلمة في تاريخ تسجيلها مع افتراض إعادة استثمارها حسابيًا؛ لا يُحسب فرق لهذا الخط مع تاسي السعري لأنه لا يشمل توزيعات السوق. تُعامل الصفقة المنفذة خلال الجلسة كأن أثرها يبدأ من إغلاق تلك الجلسة؛ لذلك لا يُدرج ربح أو خسارة سهم اشتُري وبيع في اليوم نفسه ضمن خطي الأسهم.
     إغلاقات تاسي التاريخية أسبوعية، وإغلاقات الشهر الجاري يومية عند توفرها؛ تُحسب عوائد الأسهم من أسعارها اليومية ثم تُعرض عند تواريخ المؤشر.
     المقارنة الأمريكية والشاملة أدناه تحتفظ بمنهج العائد الداخلي والتدفقات النقدية المسجلة. المرجع الشامل يضم تاسي السعري، لذلك لا يُحسب له فرق عائد مكافئ.</div>
   <div class="panel">
@@ -477,6 +477,7 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
     <div class="ch" id="compareChartWrap" style="height:340px"><canvas id="chartCompare"></canvas></div>
     <div class="compare-unavailable" id="compareChartMessage" hidden></div>
     <div class="compare-dividends" id="compareDividendNote" hidden></div>
+    <div class="compare-dividends" id="compareTradingNote" hidden></div>
     <div class="compare-import" id="compareImport"><button class="btn btn-sm" id="importTasiBtn">استيراد إغلاقات تاسي</button>
       <input type="file" id="tasiCsvFile" accept=".csv,text/csv" hidden>
       <span>لإكمال التاريخ عند تعذر المصدر التلقائي: ملف بعمودي التاريخ والإغلاق. تُحفظ البيانات ضمن النسخة الاحتياطية. <a href="https://returnsview.com/stock/TASI/" target="_blank" rel="noopener noreferrer">مصدر بيانات تاسي</a></span></div>
@@ -2148,6 +2149,18 @@ class App {
     const chartMessage=document.getElementById('compareChartMessage');
     const dividendNote=document.getElementById('compareDividendNote');
     dividendNote.hidden=selected!=='SA'||!saPrice.points;
+    const tradingNote=document.getElementById('compareTradingNote');
+    const sameDaySales=(state.sales||[]).filter(s=>s.market==='SA'&&
+      s.buyDate===s.sellDate&&saPrice.from&&saPrice.through&&
+      s.sellDate>saPrice.from&&s.sellDate<=saPrice.through);
+    tradingNote.hidden=selected!=='SA'||!saPrice.points||!sameDaySales.length;
+    if(!tradingNote.hidden){
+      const recorded=sameDaySales.filter(s=>s.pnl!=null&&Number.isFinite(Number(s.pnl)));
+      const net=recorded.reduce((sum,s)=>sum+Number(s.pnl),0);
+      tradingNote.textContent=`تنبيه: توجد ${sameDaySales.length} صفقة شراء وبيع للسهم نفسه في اليوم نفسه خلال فترة المقارنة.
+        ${recorded.length===sameDaySales.length?`نتيجتها المحققة المسجلة ${fmt.format(net)} ر.س.`:'لا تتوفر نتيجة محققة مكتملة لها في السجل.'}
+        لا تدخل هذه النتيجة في خطي الأسهم المعتمدين على حيازات إغلاق الجلسات.`;
+    }
     document.getElementById('compareImport').hidden=selected!=='SA';
     if(selected==='SA'&&saPrice.points)
       dividendNote.innerHTML=saPrice.totalReason
