@@ -35,8 +35,8 @@ const near = (actual, expected) => assert(Math.abs(actual - expected) < 1e-9,
     {'SA:TEST':[]}, 3.75, '2026-03-31');
   assert.equal(result.points.length, 3);
   near(result.points[0].pct, 10);
-  near(result.points[1].pct, 10);
-  near(result.points[2].pct, (110/121-1)*100);
+  near(result.points[1].pct, 21);
+  near(result.points[2].pct, 10);
 }
 
 {
@@ -46,7 +46,7 @@ const near = (actual, expected) => assert(Math.abs(actual - expected) < 1e-9,
   }, {'SA:TEST':history(['2026-01-30',110], ['2026-02-10',105], ['2026-02-26',121])},
   {'SA:TEST':[]}, 3.75, '2026-02-28');
   const february = result.points[1];
-  near(february.basis, 5*110 + 10*106);
+  near(february.basis, 5*100 + 10*106);
   near(february.amount, 15*121 - february.basis);
   near(february.pct, february.amount/february.basis*100);
 }
@@ -57,7 +57,7 @@ const near = (actual, expected) => assert(Math.abs(actual - expected) < 1e-9,
     {'SA:TEST':[{date:'2026-01-20',ratio:2}]},3.75,'2026-02-28');
   near(result.points[0].basis, 1010);
   near(result.points[0].amount, 90);
-  near(result.points[1].pct, (60/55-1)*100);
+  near(result.points[1].pct, (1200/1010-1)*100);
 }
 
 {
@@ -68,12 +68,22 @@ const near = (actual, expected) => assert(Math.abs(actual - expected) < 1e-9,
 }
 
 {
+  const result = calculate({lots:[buy('2026-01-10',10,100)],
+    sales:[sell('2026-02-15',10,115)]},
+  {'SA:TEST':history(['2026-01-30',110],['2026-02-26',120])},
+  {'SA:TEST':[]},3.75,'2026-02-28');
+  near(result.points[0].pct,10);
+  assert.equal(result.points[1].pct,null);
+  assert.match(result.points[1].reason,/لا توجد حيازات/);
+}
+
+{
   const result = calculate({lots:[buy('2026-01-10',10,100)],sales:[]},
     {'SA:TEST':history(['2026-01-30',110], ['2026-02-26',121],
       ['2026-03-31',121], ['2026-04-15',133.1])},
     {'SA:TEST':[]},3.75,'2026-04-15');
   assert.equal(result.points.at(-1).month, '2026-04');
-  near(result.points.at(-1).pct, 10);
+  near(result.points.at(-1).pct, 33.1);
 }
 
 {
@@ -92,4 +102,4 @@ const near = (actual, expected) => assert(Math.abs(actual - expected) < 1e-9,
   near(all.points[0].pct, ((110+90*3.75)/(100+100*3.75)-1)*100);
 }
 
-console.log('monthly unrealized calculation: 6 cases passed');
+console.log('cumulative unrealized calculation: 7 cases passed');

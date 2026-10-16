@@ -493,9 +493,9 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
   <div class="charts-grid">
     <div class="chart-box" style="grid-column:1/-1"><h3>تطور قيمة المحفظة الشاملة (ريال سعودي)</h3><div class="ch"><canvas id="chartEvolution"></canvas></div></div>
     <div class="chart-box" style="grid-column:1/-1">
-      <div class="compare-chart-head"><h3 id="monthlyChartTitle">نسبة الربح والخسارة غير المحققة شهريًا — المحفظة الشاملة</h3>
+      <div class="compare-chart-head"><h3 id="monthlyChartTitle">الربح والخسارة غير المحققة منذ الشراء — المحفظة الشاملة</h3>
         <select id="monthlyChartMarket" aria-label="نطاق الرسم الشهري"><option value="ALL">المحفظة الشاملة</option><option value="SA">المحفظة السعودية</option><option value="US">المحفظة الأمريكية</option></select></div>
-      <p class="monthly-caption">تغير أسعار الأسهم التي بقيت مفتوحة بنهاية كل شهر، مقارنة بإغلاق الشهر السابق أو بسعر شرائها إذا أضيفت خلال الشهر. تُستبعد الأسهم المبيعة والتوزيعات والرصيد النقدي. تُعرض المبالغ المساندة بالريال؛ وتُحوّل الأسهم الأمريكية بسعر الصرف المحدد في الإعدادات، دون احتساب تغير سعر الصرف.</p>
+      <p class="monthly-caption">كل عمود يبيّن نسبة الربح أو الخسارة التراكمية منذ شراء الأسهم التي بقيت مفتوحة بنهاية ذلك الشهر: قيمتها السوقية مقارنة بتكلفة شرائها مع عمولة الشراء. تُستبعد الكميات المبيعة حتى ذلك التاريخ، والتوزيعات والرصيد النقدي. تُعرض المبالغ المساندة بالريال؛ وتُحوّل الأسهم الأمريكية بسعر الصرف المحدد في الإعدادات، دون احتساب تغير سعر الصرف.</p>
       <div class="monthly-scroll" id="monthlyScroll"><div class="monthly-plot" id="monthlyPlot"><canvas id="chartMonthly"></canvas></div></div>
       <div class="monthly-status" id="monthlyStatus">جاري تحميل الأسعار التاريخية…</div>
     </div>
@@ -1380,8 +1380,7 @@ function saPriceComparison(state, tasiHistory, stockHistories, splitHistories, a
     benchmark:asReturn(last.benchmark),dividends};
 }
 
-/* التغير الشهري غير المحقق: الأسهم التي لا تزال مفتوحة عند نهاية كل شهر فقط.
-   نقارنها بإغلاق الشهر السابق، أو بتكلفة الشراء إذا دخلت خلال الشهر. */
+/* الربح/الخسارة غير المحققة المتراكمة منذ الشراء للحيازات المفتوحة في نهاية كل شهر. */
 function monthlyUnrealizedSeries(state, histories, splitHistories, usdToSar, asOf=todayStr()){
   const lots=state.lots||[],sales=state.sales||[];
   if(!lots.length) return {reason:'أضف صفقة شراء لبدء الرسم الشهري.'};
@@ -1469,8 +1468,6 @@ function monthlyUnrealizedSeries(state, histories, splitHistories, usdToSar, asO
           return {reason:`كمية مبيعات السهم ${e.key} تتجاوز المشتريات التاريخية.`};
       }
     }
-    const previousEnd=new Date(Date.UTC(Number(month.slice(0,4)),
-      Number(month.slice(5,7))-1,0)).toISOString().slice(0,10);
     let basis=0,value=0,lastClose='',missing='';
     for(const [key,positions] of held){
       const active=positions.filter(l=>l.qty>1e-8);
@@ -1479,11 +1476,8 @@ function monthlyUnrealizedSeries(state, histories, splitHistories, usdToSar, asO
       if(!atEnd){missing=`لا يتوفر سعر نهاية ${month} للسهم ${key}.`;break;}
       for(const lot of active){
         if(atEnd.date<lot.date){missing=`لا يتوفر سعر بعد شراء السهم ${key} في ${month}.`;break;}
-        const start=lot.date.slice(0,7)===month
-          ?{close:lot.unitCost}:closeAt(key,previousEnd);
-        if(!start){missing=`لا يتوفر سعر بداية ${month} للسهم ${key}.`;break;}
         const multiplier=lot.market==='US'?usdToSar:1;
-        basis+=lot.qty*start.close*multiplier;
+        basis+=lot.qty*lot.unitCost*multiplier;
         value+=lot.qty*atEnd.close*multiplier;
       }
       if(missing) break;
@@ -1620,7 +1614,7 @@ class ChartManager {
     this.make('chartMonthly', {
       type:'bar',
       data:{labels:points.map(p=>p.month),
-        datasets:[{label:'التغير غير المحقق خلال الشهر',data:points.map(p=>p.pct),
+        datasets:[{label:'الربح/الخسارة غير المحققة منذ الشراء',data:points.map(p=>p.pct),
           backgroundColor:points.map(p=>p.pct==null?'#8b97a8':p.pct>=0?'#26c281':'#f25f5c'),
           borderRadius:6,maxBarThickness:37}]},
       options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
@@ -1628,7 +1622,7 @@ class ChartManager {
           label:ctx=>{
             const point=points[ctx.dataIndex];
             return point.pct==null?point.reason:
-              `${pct(point.pct)} · ${fmt.format(point.amount)} ر.س من أساس ${fmt.format(point.basis)} ر.س`;
+              `${pct(point.pct)} · ${fmt.format(point.amount)} ر.س من تكلفة ${fmt.format(point.basis)} ر.س`;
           },
           afterLabel:ctx=>{
             const point=points[ctx.dataIndex];
@@ -2172,7 +2166,7 @@ class App {
     const state=this.store.state,asOf=todayStr();
     const scope={ALL:'المحفظة الشاملة',SA:'المحفظة السعودية',US:'المحفظة الأمريكية'}[market];
     document.getElementById('monthlyChartTitle').textContent=
-      `نسبة الربح والخسارة غير المحققة شهريًا — ${scope}`;
+      `الربح والخسارة غير المحققة منذ الشراء — ${scope}`;
     const status=document.getElementById('monthlyStatus');
     const scroll=document.getElementById('monthlyScroll');
     const selectedState=market==='ALL'?state:{
