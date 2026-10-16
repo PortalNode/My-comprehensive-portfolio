@@ -493,8 +493,9 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
   <div class="charts-grid">
     <div class="chart-box" style="grid-column:1/-1"><h3>تطور قيمة المحفظة الشاملة (ريال سعودي)</h3><div class="ch"><canvas id="chartEvolution"></canvas></div></div>
     <div class="chart-box" style="grid-column:1/-1">
-      <h3>نسبة الربح والخسارة غير المحققة شهريًا</h3>
-      <p class="monthly-caption">تغير أسعار الأسهم التي بقيت مفتوحة بنهاية كل شهر، مقارنة بإغلاق الشهر السابق أو بسعر شرائها إذا أضيفت خلال الشهر. تُستبعد الأسهم المبيعة والتوزيعات. في المحفظة الشاملة تُوزن الأسهم الأمريكية بسعر الصرف المحدد في الإعدادات، دون احتساب تغير سعر الصرف.</p>
+      <div class="compare-chart-head"><h3 id="monthlyChartTitle">نسبة الربح والخسارة غير المحققة شهريًا — المحفظة الشاملة</h3>
+        <select id="monthlyChartMarket" aria-label="نطاق الرسم الشهري"><option value="ALL">المحفظة الشاملة</option><option value="SA">المحفظة السعودية</option><option value="US">المحفظة الأمريكية</option></select></div>
+      <p class="monthly-caption">تغير أسعار الأسهم التي بقيت مفتوحة بنهاية كل شهر، مقارنة بإغلاق الشهر السابق أو بسعر شرائها إذا أضيفت خلال الشهر. تُستبعد الأسهم المبيعة والتوزيعات والرصيد النقدي. تُعرض المبالغ المساندة بالريال؛ وتُحوّل الأسهم الأمريكية بسعر الصرف المحدد في الإعدادات، دون احتساب تغير سعر الصرف.</p>
       <div class="monthly-scroll" id="monthlyScroll"><div class="monthly-plot" id="monthlyPlot"><canvas id="chartMonthly"></canvas></div></div>
       <div class="monthly-status" id="monthlyStatus">جاري تحميل الأسعار التاريخية…</div>
     </div>
@@ -1611,10 +1612,10 @@ class ChartManager {
         scales:{x:{ticks:{callback:v=>fmt0.format(v)}}}}
     });
   }
-  monthly(series){
+  monthly(series,market){
     const points=series.points||[];
     const scroll=document.getElementById('monthlyScroll');
-    const newMonth=this.monthlyLastMonth!==points.at(-1)?.month;
+    const newMonth=this.monthlyLastMonth!==points.at(-1)?.month||this.monthlyLastMarket!==market;
     document.getElementById('monthlyPlot').style.width=Math.max(scroll.clientWidth,points.length*58)+'px';
     this.make('chartMonthly', {
       type:'bar',
@@ -1640,6 +1641,7 @@ class ChartManager {
     });
     if(newMonth) scroll.scrollLeft=scroll.scrollWidth;
     this.monthlyLastMonth=points.at(-1)?.month;
+    this.monthlyLastMarket=market;
   }
   /* عائد المحفظة والمرجع بعد ضبط كل نقطة بالتدفقات الخارجية حتى تاريخها */
   compare(series){
@@ -2021,6 +2023,9 @@ class App {
     this.monthlyFetchedDay = '';
     this.monthlyFetchFailed = false;
     this.monthlyPromise = null;
+    this.monthlyFetchedKeys = new Set();
+    this.monthlySelectedMarket = '';
+    this.monthlyRenderVersion = 0;
   }
 
   /* ---------- بيانات تجريبية عند أول تشغيل ---------- */
@@ -2152,26 +2157,39 @@ class App {
 
   /* تحديث التاريخ ثم إعادة بناء الأشهر من سجل الصفقات دون الاعتماد على اللقطات الناقصة. */
   renderMonthly(){
-    if(this.monthlyPromise) return this.monthlyPromise;
-    this.monthlyPromise=this._renderMonthly().catch(()=>{
-      document.getElementById('monthlyStatus').textContent='تعذر بناء الرسم الشهري؛ أعد المحاولة بعد تحديث الأسعار.';
-    }).finally(()=>{this.monthlyPromise=null;});
-    return this.monthlyPromise;
+    const market=document.getElementById('monthlyChartMarket').value;
+    if(this.monthlyPromise&&this.monthlySelectedMarket===market) return this.monthlyPromise;
+    this.monthlySelectedMarket=market;
+    const version=++this.monthlyRenderVersion;
+    const task=this._renderMonthly(market,version).catch(()=>{
+      if(version===this.monthlyRenderVersion)
+        document.getElementById('monthlyStatus').textContent='تعذر بناء الرسم الشهري؛ أعد المحاولة بعد تحديث الأسعار.';
+    }).finally(()=>{if(this.monthlyPromise===task)this.monthlyPromise=null;});
+    this.monthlyPromise=task;
+    return task;
   }
-  async _renderMonthly(){
+  async _renderMonthly(market,version){
     const state=this.store.state,asOf=todayStr();
+    const scope={ALL:'المحفظة الشاملة',SA:'المحفظة السعودية',US:'المحفظة الأمريكية'}[market];
+    document.getElementById('monthlyChartTitle').textContent=
+      `نسبة الربح والخسارة غير المحققة شهريًا — ${scope}`;
     const status=document.getElementById('monthlyStatus');
     const scroll=document.getElementById('monthlyScroll');
-    const keys=[...new Set([...(state.lots||[]),...(state.sales||[])]
+    const selectedState=market==='ALL'?state:{
+      lots:(state.lots||[]).filter(e=>e.market===market),
+      sales:(state.sales||[]).filter(e=>e.market===market)
+    };
+    const keys=[...new Set([...(selectedState.lots||[]),...(selectedState.sales||[])]
       .map(e=>`${e.market}:${e.symbol}`))];
     if(!keys.length){
-      scroll.hidden=true;status.textContent='أضف صفقة شراء لبدء الرسم الشهري.';return;
+      scroll.hidden=true;status.textContent=`لا توجد صفقات شراء في ${scope}.`;return;
     }
     if(keys.some(key=>!/^(SA|US):[A-Z0-9.^=-]+$/i.test(key))){
       scroll.hidden=true;status.textContent='يوجد رمز سهم غير صالح في سجل الصفقات.';return;
     }
+    scroll.hidden=true;
     status.textContent='جاري التحقق من الأسعار التاريخية…';
-    const firstBuy=state.lots.map(l=>l.buyDate).filter(validDay).sort()[0];
+    const firstBuy=selectedState.lots.map(l=>l.buyDate).filter(validDay).sort()[0];
     const days=firstBuy?dayNumber(asOf)-dayNumber(firstBuy):0;
     const range=days<=85?'3mo':days<=175?'6mo':days<=360?'1y':days<=720?'2y':days<=1800?'5y':'max';
     const historyCache=market=>market==='SA'
@@ -2182,10 +2200,35 @@ class App {
       const [market,symbol]=key.split(':');
       return !historyCache(market)[symbol]?.length||!Array.isArray(splitCache(market)[symbol]);
     });
+    const display=(pending=false)=>{
+      if(version!==this.monthlyRenderVersion) return;
+      const histories={},splits={};
+      for(const key of keys){
+        const [part,symbol]=key.split(':');
+        histories[key]=historyCache(part)[symbol];
+        splits[key]=splitCache(part)[symbol];
+      }
+      const series=monthlyUnrealizedSeries(selectedState,histories,splits,
+        Number(state.settings.usdToSar),asOf);
+      if(series.reason){
+        if(!pending){scroll.hidden=true;status.textContent=series.reason;}
+        return;
+      }
+      scroll.hidden=false;this.chartMgr.monthly(series,market);
+      const unavailable=series.points.filter(p=>p.pct==null&&
+        !p.reason.startsWith('لا توجد حيازات')).length;
+      const latest=series.points.at(-1);
+      status.textContent=`من ${series.from} إلى ${series.through} · الشهر الجاري مؤقت؛ أقدم إغلاق مستخدم ${latest.closeDate||'غير متاح'}.`+
+        (unavailable?` ${unavailable} شهر بلا نسبة لعدم اكتمال الأسعار.`:'')+
+        (pending?' جاري تحديث الأسعار التاريخية.':'');
+    };
     const age=Date.now()-this.monthlyFetchedAt;
+    if(this.monthlyFetchedDay!==asOf) this.monthlyFetchedKeys.clear();
     const refresh=this.monthlyFetchedDay!==asOf||
+      keys.some(key=>!this.monthlyFetchedKeys.has(key))||
       age>(this.monthlyFetchFailed||missing?10:60)*60000;
     if(refresh){
+      display(true);
       const queue=[...keys];let failed=false,changed=false;
       await Promise.all(Array.from({length:Math.min(4,queue.length)},async()=>{
         while(queue.length){
@@ -2200,28 +2243,13 @@ class App {
         }
       }));
       this.monthlyFetchedDay=asOf;this.monthlyFetchedAt=Date.now();
+      keys.forEach(key=>this.monthlyFetchedKeys.add(key));
       this.monthlyFetchFailed=failed;
       if(changed) try{this.store.save();}catch(error){
         status.textContent='تعذر حفظ الأسعار التاريخية محليًا؛ سيعاد جلبها عند الزيارة القادمة.';
       }
     }
-    const histories={},splits={};
-    for(const key of keys){
-      const [market,symbol]=key.split(':');
-      histories[key]=historyCache(market)[symbol];
-      splits[key]=splitCache(market)[symbol];
-    }
-    const series=monthlyUnrealizedSeries(state,histories,splits,
-      Number(state.settings.usdToSar),asOf);
-    if(series.reason){
-      scroll.hidden=true;status.textContent=series.reason;return;
-    }
-    scroll.hidden=false;this.chartMgr.monthly(series);
-    const unavailable=series.points.filter(p=>p.pct==null&&
-      !p.reason.startsWith('لا توجد حيازات')).length;
-    const latest=series.points.at(-1);
-    status.textContent=`من ${series.from} إلى ${series.through} · الشهر الجاري مؤقت؛ أقدم إغلاق مستخدم ${latest.closeDate||'غير متاح'}.`+
-      (unavailable?` ${unavailable} شهر بلا نسبة لعدم اكتمال الأسعار.`:'');
+    display();
   }
 
   /* ---------- مقارنة الأداء ---------- */
@@ -2503,6 +2531,7 @@ class App {
     });
     document.querySelector('main').addEventListener('change', e=>{
       if(e.target.id==='compareChartMarket'){ this.renderCompare(); return; }
+      if(e.target.id==='monthlyChartMarket'){ this.renderMonthly(); return; }
       const so = e.target.closest('[data-sort]');
       if(so){ ui.tableState[so.dataset.sort].sort = so.value; ui.renderPortfolioView(so.dataset.sort); return; }
       const mf = e.target.closest('[data-filter-mkt]');

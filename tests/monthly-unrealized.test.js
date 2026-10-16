@@ -76,4 +76,20 @@ const near = (actual, expected) => assert(Math.abs(actual - expected) < 1e-9,
   near(result.points.at(-1).pct, 10);
 }
 
-console.log('monthly unrealized calculation: 5 cases passed');
+{
+  const sa = buy('2026-01-10',1,100);
+  const us = {...buy('2026-01-10',1,100),market:'US',symbol:'USD'};
+  const histories = {
+    'SA:TEST':history(['2026-01-30',110]),
+    'US:USD':history(['2026-01-30',90])
+  };
+  const splits = {'SA:TEST':[],'US:USD':[]};
+  const all = calculate({lots:[sa,us],sales:[]},histories,splits,3.75,'2026-01-31');
+  const saOnly = calculate({lots:[sa],sales:[]},histories,splits,3.75,'2026-01-31');
+  const usOnly = calculate({lots:[us],sales:[]},histories,splits,3.75,'2026-01-31');
+  near(saOnly.points[0].pct, 10);
+  near(usOnly.points[0].pct, -10);
+  near(all.points[0].pct, ((110+90*3.75)/(100+100*3.75)-1)*100);
+}
+
+console.log('monthly unrealized calculation: 6 cases passed');
