@@ -467,9 +467,9 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
 
 <!-- ===== مقارنة الأداء ===== -->
 <section class="view" id="view-compare">
-  <div class="compare-explain"><strong>منهجية المقارنة:</strong> للمحفظة السعودية يُقاس تغير أسعار الأسهم المحتفظ بها عند إغلاق الجلسات، وتُضم عوائد الأيام المتتالية بعد استبعاد أثر المشتريات والمبيعات. يُقارن خط أسعار الأسهم دون توزيعات بتاسي السعري من تاريخ أساس واحد. يظهر خط ثالث يضيف التوزيعات المستلمة في تاريخ تسجيلها مع افتراض إعادة استثمارها حسابيًا؛ لا يُحسب فرق لهذا الخط مع تاسي السعري لأنه لا يشمل توزيعات السوق. تُعامل الصفقة المنفذة خلال الجلسة كأن أثرها يبدأ من إغلاق تلك الجلسة؛ لذلك لا يُدرج ربح أو خسارة سهم اشتُري وبيع في اليوم نفسه ضمن خطي الأسهم.
-    إغلاقات تاسي التاريخية أسبوعية، وإغلاقات الشهر الجاري يومية عند توفرها؛ تُحسب عوائد الأسهم من أسعارها اليومية ثم تُعرض عند تواريخ المؤشر.
-    المقارنة الأمريكية والشاملة أدناه تحتفظ بمنهج العائد الداخلي والتدفقات النقدية المسجلة. المرجع الشامل يضم تاسي السعري، لذلك لا يُحسب له فرق عائد مكافئ.</div>
+  <div class="compare-explain"><strong>منهجية المقارنة:</strong> تقيس الخطوط السعرية تغير قيمة الأسهم أثناء الاحتفاظ بها، وتربط عوائد الفترات بعد استبعاد أثر الشراء والبيع؛ لا تشمل النقد أو التوزيعات أو العمولات. تقارن السعودية بتاسي السعري، والأمريكية بمؤشر S&amp;P 500 السعري. تُعرض التوزيعات السعودية المسجلة في خط منفصل، دون حساب فرق مع مؤشر سعري لا يشمل توزيعات السوق.
+    تُعامل الصفقات كأن أثرها يبدأ بعد إغلاق يوم تنفيذها؛ فلا تدخل نتيجة شراء وبيع السهم في اليوم نفسه في الخط السعري. يبدأ خط كل سوق من أول إغلاق متاح بعد أول شراء.
+    تتطلب المقارنة الشاملة إغلاقات يومية متصلة للمؤشرين، وتزن عائد كل مؤشر بقيمة الأسهم المستثمرة في سوقه عند بداية كل فترة، مع تحويل الدولار إلى الريال بالسعر المحدد في الإعدادات. لأن إغلاقات تاسي القديمة في المصدر التلقائي أسبوعية، يبدأ الخط الشامل من أول مقطع يومي مشترك متاح؛ ولا يُنسب له أداء منذ تأسيس المحفظة ما لم تتوفر بيانات يومية تغطي تلك الفترة.</div>
   <div class="panel">
     <div class="panel-head"><h2>مقارنة أداء المحفظة مع المؤشرات</h2>
       <span class="last-update" id="compareNote"></span></div>
@@ -484,7 +484,7 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
     <div class="compare-dividends" id="compareTradingNote" hidden></div>
     <div class="compare-import" id="compareImport"><button class="btn btn-sm" id="importTasiBtn">استيراد إغلاقات تاسي</button>
       <input type="file" id="tasiCsvFile" accept=".csv,text/csv" hidden>
-      <span>لإكمال التاريخ عند تعذر المصدر التلقائي: ملف بعمودي التاريخ والإغلاق. تُحفظ البيانات ضمن النسخة الاحتياطية. <a href="https://returnsview.com/stock/TASI/" target="_blank" rel="noopener noreferrer">مصدر بيانات تاسي</a></span></div>
+      <span>لإطالة تاريخ المقارنة الشاملة، استورد إغلاقات تاسي اليومية منذ بداية استثمارك الأمريكي بملف يحتوي عمودي التاريخ والإغلاق. تُحفظ البيانات ضمن النسخة الاحتياطية. <a href="https://returnsview.com/stock/TASI/" target="_blank" rel="noopener noreferrer">مصدر بيانات تاسي الحالي</a></span></div>
   </div>
 </section>
 
@@ -1256,10 +1256,13 @@ function shadowIndexValue(flows, history, asOf){
 
 /* عائد أسعار الأسهم السعودية فقط. تدخل الصفقات بعد إغلاق يومها، فلا تُعامل
    المشتريات كتدفقات ربح ولا تُضاف التوزيعات إلى خط المقارنة السعري. */
-function saPriceComparison(state, tasiHistory, stockHistories, splitHistories, asOf=todayStr()){
-  const lots=(state.lots||[]).filter(l=>l.market==='SA');
-  const sales=(state.sales||[]).filter(s=>s.market==='SA');
-  if(!lots.length) return {reason:'أضف صفقة شراء سعودية لبدء المقارنة.'};
+function stockPriceComparison(state, indexHistory, stockHistories, splitHistories,
+  market='SA', asOf=todayStr()){
+  const marketName=market==='SA'?'سعودية':'أمريكية';
+  const indexName=market==='SA'?'تاسي':'S&P 500';
+  const lots=(state.lots||[]).filter(l=>l.market===market);
+  const sales=(state.sales||[]).filter(s=>s.market===market);
+  if(!lots.length) return {reason:`أضف صفقة شراء ${marketName} لبدء المقارنة.`};
   const events=[
     ...lots.map(l=>({date:l.buyDate,symbol:l.symbol,qty:Number(l.qty),price:Number(l.buyPrice)})),
     ...sales.map(s=>({date:s.sellDate,symbol:s.symbol,qty:-Number(s.qty),price:Number(s.sellPrice)}))
@@ -1268,11 +1271,11 @@ function saPriceComparison(state, tasiHistory, stockHistories, splitHistories, a
     return {reason:'توجد صفقة بتاريخ أو كمية أو سعر غير صالح؛ راجع سجل الصفقات.'};
   events.sort((a,b)=>a.date.localeCompare(b.date));
   const firstBuy=lots.map(l=>l.buyDate).sort()[0];
-  const index=(tasiHistory||[]).filter(p=>p.date<=asOf&&Number.isFinite(p.close)&&p.close>0)
+  const index=(indexHistory||[]).filter(p=>p.date<=asOf&&Number.isFinite(p.close)&&p.close>0)
     .sort((a,b)=>a.date.localeCompare(b.date));
   const first=index.findIndex(p=>p.date>=firstBuy);
-  if(first<0) return {reason:'لا تتوفر إغلاقات تاسي بعد تاريخ أول شراء؛ استورد ملف الإغلاقات التاريخية.'};
-  if(index.length-first<2) return {reason:'يلزم إغلاق جلستين على الأقل لرسم المقارنة؛ استورد تاريخ تاسي أو انتظر جلسة جديدة.'};
+  if(first<0) return {reason:`لا تتوفر إغلاقات ${indexName} بعد تاريخ أول شراء.`};
+  if(index.length-first<2) return {reason:`يلزم إغلاق جلستين على الأقل لمؤشر ${indexName} لرسم المقارنة.`};
   const symbols=[...new Set(events.map(e=>e.symbol))];
   const prices=new Map();
   for(const symbol of symbols){
@@ -1332,10 +1335,10 @@ function saPriceComparison(state, tasiHistory, stockHistories, splitHistories, a
   const base=index[first],points=[{date:base.date,actual:100,total:100,benchmark:100}];
   const indexAt=new Map(index.slice(first+1).map(p=>[p.date,p.close]));
   const lastIndexDate=index.at(-1).date;
-  const saDividends=(state.dividends||[]).filter(d=>d.market==='SA');
-  const invalidDividend=saDividends.some(d=>!validDay(d.date)||d.date>asOf||
+  const marketDividends=(state.dividends||[]).filter(d=>d.market===market);
+  const invalidDividend=marketDividends.some(d=>!validDay(d.date)||d.date>asOf||
     !Number.isFinite(Number(d.amount))||Number(d.amount)<0);
-  const recordedDividends=saDividends.filter(d=>validDay(d.date)&&d.date>base.date&&d.date<=lastIndexDate);
+  const recordedDividends=marketDividends.filter(d=>validDay(d.date)&&d.date>base.date&&d.date<=lastIndexDate);
   const dividendsByDate=new Map();
   if(!invalidDividend) for(const d of recordedDividends)
     dividendsByDate.set(d.date,(dividendsByDate.get(d.date)||0)+Number(d.amount));
@@ -1378,6 +1381,136 @@ function saPriceComparison(state, tasiHistory, stockHistories, splitHistories, a
   return {from:base.date,through:last.date,points,actual:asReturn(last.actual),
     withDividends:totalReason?null:asReturn(last.total),totalReason,
     benchmark:asReturn(last.benchmark),dividends};
+}
+
+/* مقارنة سعرية شاملة يومية: وزن المرجع في كل فترة هو القيمة السوقية للأسهم
+   السعودية والأمريكية المحتفظ بها عند بدايتها. يلزم تاريخ يومي فعلي للمؤشرين؛
+   لا تُملأ الأيام المفقودة بالتخمين ولا تُحوَّل الإيداعات إلى عائد. */
+function combinedPriceComparison(state, indices, histories, splits, usdToSar, asOf=todayStr()){
+  if(!Number.isFinite(usdToSar)||usdToSar<=0)
+    return {reason:'سعر صرف الدولار غير صالح؛ صححه من الإعدادات.'};
+  const lots=(state.lots||[]).filter(l=>['SA','US'].includes(l.market));
+  if(!lots.some(l=>l.market==='SA')||!lots.some(l=>l.market==='US'))
+    return {reason:'تبدأ المقارنة الشاملة بعد وجود استثمار في السوقين.'};
+  const sa=(indices.SA||[]).filter(p=>validDay(p.date)&&p.date<=asOf&&Number.isFinite(p.close)&&p.close>0)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  const us=(indices.US||[]).filter(p=>validDay(p.date)&&p.date<=asOf&&Number.isFinite(p.close)&&p.close>0)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  if(sa.length<3||us.length<3)
+    return {reason:'يلزم تاريخ يومي كافٍ لتاسي وS&P 500؛ لا تُحسب مقارنة شاملة من إغلاقات أسبوعية فقط.'};
+  // إغلاقات تاسي الأقدم أسبوعية؛ نبدأ من آخر مقطع يومي متصل دون الاستيفاء بين الأسابيع.
+  let dense=sa.length-1;
+  while(dense>0&&dayNumber(sa[dense].date)-dayNumber(sa[dense-1].date)<=6) dense--;
+  const firstUS=lots.filter(l=>l.market==='US').map(l=>l.buyDate).sort()[0];
+  const firstSA=lots.filter(l=>l.market==='SA').map(l=>l.buyDate).sort()[0];
+  const firstBoth=sa.find(p=>p.date>=firstUS&&p.date>=firstSA&&p.date>=sa[dense].date);
+  if(!firstBoth||sa.length-sa.indexOf(firstBoth)<3)
+    return {reason:'لا توجد جلسات يومية مشتركة كافية بعد بدء الاستثمار في السوقين؛ استورد إغلاقات تاسي اليومية.'};
+  const base=firstBoth.date;
+  const indexMap={SA:new Map(sa.map(p=>[p.date,p.close])),US:new Map(us.map(p=>[p.date,p.close]))};
+  const indexSeries={SA:sa,US:us};
+  const at=(series,date,maxAge=7)=>{
+    let lo=0,hi=series.length;
+    while(lo<hi){const mid=(lo+hi)>>1;if(series[mid].date<=date)lo=mid+1;else hi=mid;}
+    const p=series[lo-1];
+    return p&&dayNumber(date)-dayNumber(p.date)<=maxAge?p.close:null;
+  };
+  if(at(us,base)==null) return {reason:'لا يتوفر إغلاق S&P 500 عند بداية الفترة اليومية المشتركة.'};
+  const raw=[
+    ...lots.filter(l=>l.buyDate>=base)
+      .map(l=>({date:l.buyDate,market:l.market,symbol:l.symbol,qty:Number(l.qty),price:Number(l.buyPrice)})),
+    ...(state.sales||[]).filter(s=>['SA','US'].includes(s.market))
+      .map(s=>({date:s.sellDate,market:s.market,symbol:s.symbol,qty:-Number(s.qty),price:Number(s.sellPrice)}))
+  ].filter(e=>e.date>=base);
+  if(raw.some(e=>!validDay(e.date)||e.date>asOf||!e.symbol||!Number.isFinite(e.qty)||e.qty===0||
+    !Number.isFinite(e.price)||e.price<=0))
+    return {reason:'توجد صفقة بتاريخ أو كمية أو سعر غير صالح؛ راجع سجل الصفقات.'};
+  const currentQty=new Map();
+  for(const l of lots){
+    const key=`${l.market}:${l.symbol}`,qty=Number(l.remainingQty);
+    if(!Number.isFinite(qty)||qty<0)
+      return {reason:`كمية الحيازة المتبقية للسهم ${key} غير صالحة.`};
+    currentQty.set(key,(currentQty.get(key)||0)+qty);
+  }
+  const keys=[...new Set([...raw.map(e=>`${e.market}:${e.symbol}`),
+    ...[...currentQty].filter(([,qty])=>qty>0).map(([key])=>key)])];
+  const prices=new Map();
+  for(const key of keys){
+    const series=(histories?.[key]||[]).filter(p=>validDay(p.date)&&p.date<=asOf&&
+      Number.isFinite(p.close)&&p.close>0).sort((a,b)=>a.date.localeCompare(b.date));
+    if(!series.length) return {reason:`لا يتوفر تاريخ سعر السهم ${key} للمقارنة الشاملة.`};
+    prices.set(key,series);
+  }
+  for(const e of raw){
+    const key=`${e.market}:${e.symbol}`,history=prices.get(key),events=splits?.[key];
+    if(!Array.isArray(events)) return {reason:`يلزم سجل تجزئات ${key} للتحقق من كمية الصفقة.`};
+    if(events.some(s=>!validDay(s.date)||!Number.isFinite(s.ratio)||s.ratio<=0))
+      return {reason:`سجل تجزئات ${key} غير صالح.`};
+    const factor=events.filter(s=>s.date>e.date&&s.date<=asOf).reduce((v,s)=>v*s.ratio,1);
+    if(Math.abs(factor-1)<1e-8) continue;
+    const close=at(history,e.date);
+    if(close==null) return {reason:`لا يوجد إغلاق قريب من صفقة ${key} لتحديد أساس التجزئة.`};
+    const adjustedError=Math.abs(Math.log(e.price/close));
+    const originalError=Math.abs(Math.log(e.price/(close*factor)));
+    if(Math.abs(adjustedError-originalError)<0.12)
+      return {reason:`لا يمكن تحديد أساس كمية صفقة ${key} بعد التجزئة.`};
+    if(originalError<adjustedError) e.qty*=factor;
+  }
+  raw.sort((a,b)=>a.date.localeCompare(b.date)||b.qty-a.qty);
+  const held=new Map(currentQty);let eventIndex=0;
+  for(const e of raw){
+    const key=`${e.market}:${e.symbol}`;
+    held.set(key,(held.get(key)||0)-e.qty);
+  }
+  if([...held.values()].some(qty=>qty< -1e-8))
+    return {reason:'الحيازات المتبقية لا تتطابق مع صفقات فترة المقارنة الشاملة.'};
+  const apply=date=>{
+    while(eventIndex<raw.length&&raw[eventIndex].date<=date){
+      const e=raw[eventIndex++],key=`${e.market}:${e.symbol}`;
+      const next=(held.get(key)||0)+e.qty;
+      if(next< -1e-8) return false;
+      held.set(key,Math.abs(next)<1e-8?0:next);
+    }
+    return true;
+  };
+  if(!apply(base)) return {reason:'كمية مبيعات أحد الأسهم تتجاوز مشتريات السهم السابقة.'};
+  const lastDate=sa.at(-1).date>us.at(-1).date?sa.at(-1).date:us.at(-1).date;
+  const dates=[...new Set([
+    ...sa.map(p=>p.date),...us.map(p=>p.date),
+    ...[...prices.values()].flatMap(v=>v.map(p=>p.date)),...raw.map(e=>e.date)
+  ])].filter(d=>d>base&&d<=lastDate).sort();
+  const points=[{date:base,actual:100,benchmark:100}];
+  let actual=100,benchmark=100,previous=base;
+  for(const date of dates){
+    let startSA=0,startUS=0,endSA=0,endUS=0;
+    for(const [key,qty] of held){
+      if(qty<=0) continue;
+      const before=at(prices.get(key),previous),after=at(prices.get(key),date);
+      if(before==null||after==null)
+        return {reason:`سعر ${key} غير متاح أثناء فترة الاحتفاظ؛ لا يُعرض عائد ناقص.`};
+      if(key.startsWith('SA:')){startSA+=qty*before;endSA+=qty*after;}
+      else{startUS+=qty*before*usdToSar;endUS+=qty*after*usdToSar;}
+    }
+    const start=startSA+startUS;
+    if(start>0){
+      const saBefore=at(indexSeries.SA,previous),saAfter=at(indexSeries.SA,date);
+      const usBefore=at(indexSeries.US,previous),usAfter=at(indexSeries.US,date);
+      if((startSA>0&&(saBefore==null||saAfter==null))||
+        (startUS>0&&(usBefore==null||usAfter==null)))
+        return {reason:'إغلاق أحد المؤشرين مفقود خلال فترة المقارنة؛ استورد التاريخ اليومي الناقص.'};
+      actual*=(endSA+endUS)/start;
+      benchmark*=(startSA*(saAfter/saBefore)+startUS*(usAfter/usBefore))/start;
+    }
+    if(!apply(date)) return {reason:'كمية مبيعات أحد الأسهم تتجاوز مشترياته السابقة.'};
+    if(indexMap.SA.has(date)||indexMap.US.has(date)) points.push({date,actual,benchmark});
+    previous=date;
+  }
+  const last=points.at(-1),days=dayNumber(last.date)-dayNumber(base);
+  if(days<=0) return {reason:'يلزم يومان مشتركان على الأقل لرسم المقارنة الشاملة.'};
+  const asReturn=value=>({period:value-100,
+    annual:(Math.pow(value/100,365.2425/days)-1)*100,days});
+  return {from:base,through:last.date,points,actual:asReturn(last.actual),
+    benchmark:asReturn(last.benchmark),recent:true};
 }
 
 /* الربح/الخسارة غير المحققة المتراكمة منذ الشراء للحيازات المفتوحة في نهاية كل شهر. */
@@ -1637,17 +1770,17 @@ class ChartManager {
     this.monthlyLastMonth=points.at(-1)?.month;
     this.monthlyLastMarket=market;
   }
-  /* عائد المحفظة والمرجع بعد ضبط كل نقطة بالتدفقات الخارجية حتى تاريخها */
+  /* نمو أسعار الأسهم والمرجع على أساس 100 */
   compare(series){
-    const sa=series.priceOnly===true;
+    const priceOnly=series.priceOnly===true;
     this.make('chartCompare', {
       type:'line',
       data:{ labels: series.labels,
         datasets:[
-          {label:sa?'أسعار أسهم محفظتي · دون التوزيعات':'المحفظة', data:series.actual,
+          {label:series.actualLabel||'أسعار أسهم محفظتي · دون التوزيعات', data:series.actual,
             borderColor:'#7299ff',
             tension:.18, pointRadius:0, pointHoverRadius:4, borderWidth:3},
-          ...(sa&&series.total?[{label:'أسهم محفظتي + التوزيعات · إعادة استثمار حسابية',
+          ...(series.total?[{label:'أسهم محفظتي + التوزيعات · إعادة استثمار حسابية',
             data:series.total,borderColor:'#e9b66d',tension:.18,pointRadius:0,
             pointHoverRadius:4,borderWidth:2.8}]:[]),
           {label:series.benchmarkLabel, data:series.benchmark, borderColor:'#51dac8',
@@ -1655,7 +1788,7 @@ class ChartManager {
         ]},
       options:{maintainAspectRatio:false, spanGaps:false, interaction:{mode:'index',intersect:false},
         plugins:{legend:{labels:{usePointStyle:true}},tooltip:{callbacks:{
-          label:ctx=>`${ctx.dataset.label}: ${fmt.format(ctx.parsed.y)}${sa?` (${pct(ctx.parsed.y-100)})`:''}`
+          label:ctx=>`${ctx.dataset.label}: ${fmt.format(ctx.parsed.y)}${priceOnly?` (${pct(ctx.parsed.y-100)})`:''}`
         }}},
         scales:{x:{ticks:{maxTicksLimit:7,maxRotation:0}},y:{ticks:{callback:v=>fmt.format(v)}}}}
     });
@@ -2252,15 +2385,14 @@ class App {
     const tbl = document.getElementById('compareTable');
     const note = document.getElementById('compareNote');
     const asOf = todayStr(), state = this.store.state;
-    const ledgers = {SA:fundingLedger(state,'SA',asOf),US:fundingLedger(state,'US',asOf)};
     const saSymbols=[...new Set(state.lots.filter(l=>l.market==='SA').map(l=>l.symbol))];
-    const first = [...['SA','US'].filter(m=>ledgers[m].ok).map(m=>ledgers[m].from),
-      ...state.lots.filter(l=>l.market==='SA').map(l=>l.buyDate)].filter(validDay).sort()[0];
+    const usSymbols=[...new Set(state.lots.filter(l=>l.market==='US').map(l=>l.symbol))];
+    const first = state.lots.map(l=>l.buyDate).filter(validDay).sort()[0];
     const days = first ? dayNumber(asOf)-dayNumber(first) : 0;
     const range = days<=85?'3mo':days<=175?'6mo':days<=360?'1y':days<=720?'2y':days<=1800?'5y':'max';
     if(this.indexHistory.range!==range) this.indexHistory={range};
     note.textContent = 'جاري تحميل بيانات المؤشرات...';
-    if((ledgers.SA.ok||saSymbols.length)&&this.indexHistory.tasiFetchedDay!==asOf){
+    if(saSymbols.length&&this.indexHistory.tasiFetchedDay!==asOf){
       try{this.indexHistory.tasi=await this.prices.getTasiHistory();}
       catch(error){
         try{this.indexHistory.tasi=(await this.prices.getHistory('^TASI.SR',range))
@@ -2269,8 +2401,8 @@ class App {
       }
       this.indexHistory.tasiFetchedDay=asOf;
     }
-    if(ledgers.US.ok&&!this.indexHistory.sp){
-      try{this.indexHistory.sp=await this.prices.getHistory('^SP500TR',range);}
+    if(usSymbols.length&&!this.indexHistory.sp){
+      try{this.indexHistory.sp=await this.prices.getHistory('^GSPC',range);}
       catch(error){/* ستظهر حالة عدم توفر المرجع في الجدول */}
     }
     const mergedTasi=mergeTasiHistory(state.tasiHistory,this.indexHistory.tasi);
@@ -2307,65 +2439,74 @@ class App {
         state.stockHistoryCache=priorStockCache;state.stockSplitCache=priorSplitCache;
       }
     }
-    const histories = {SA:this.indexHistory.tasi,US:this.indexHistory.sp};
-    const saPrice=saPriceComparison(state,histories.SA,this.indexHistory.saStocks,this.indexHistory.saSplits,asOf);
-    const resultFor = market => {
-      const ledger = ledgers[market];
-      if(!ledger.ok) return {market, reason:ledger.reason};
-      const st=pf.stats(market);
-      if(!st.priced) return {market, from:ledger.from, reason:'بعض أسعار الأسهم غير متوفرة؛ لا يُعرض عائد ناقص.'};
-      if(pf.positions(market).some(p=>!Number.isFinite(p.priceTs)||Date.now()-p.priceTs>7*86400000))
-        return {market, from:ledger.from, reason:'آخر سعر لبعض الأسهم أقدم من أسبوع؛ حدّث الأسعار قبل المقارنة.'};
-      if(Math.abs(st.cash-ledger.synthetic-ledger.cash)>0.05)
-        return {market, from:ledger.from, reason:'الرصيد النقدي لا يتطابق مع سجل الحركات؛ راجع البيانات.'};
-      const end=st.value+ledger.cash;
-      const actual=datedReturn(ledger.flows,end,asOf);
-      if(!actual) return {market, from:ledger.from, reason:'تعذر استخراج عائد وحيد من التدفقات المسجلة.'};
-      const benchmarkEnd=shadowIndexValue(ledger.flows,histories[market],asOf);
-      const benchmark=benchmarkEnd!=null?datedReturn(ledger.flows,benchmarkEnd,asOf):null;
-      return {market,from:ledger.from,flows:ledger.flows,end,actual,benchmarkEnd,benchmark,
-        reason:benchmark?'':`بيانات المؤشر لا تغطي التدفقات منذ ${ledger.from}، أو لا يكفي الاستثمار الافتراضي لتنفيذ إحدى السحوبات.`};
-    };
-    const sa=resultFor('SA'), us=resultFor('US');
-    let all={market:'ALL',reason:'يلزم سجل تمويل وأسعار مكتملة لكل سوق نشط.'};
-    const hasActivity = market => state.lots.some(l=>l.market===market) ||
-      state.sales.some(s=>s.market===market) || state.dividends.some(d=>d.market===market) ||
-      state.cashMoves.some(m=>(m.market||'SA')===market&&!isSyntheticCash(m));
-    const required=[sa,us].filter(r=>hasActivity(r.market));
-    if(required.length && required.every(r=>r.actual&&r.benchmark)){
-      const flows=required.flatMap(r=>r.flows.map(f=>({date:f.date,amount:f.amount*(r.market==='US'?pf.rate:1)})))
-        .sort((a,b)=>a.date.localeCompare(b.date));
-      const end=required.reduce((sum,r)=>sum+r.end*(r.market==='US'?pf.rate:1),0);
-      const benchmarkEnd=required.reduce((sum,r)=>sum+r.benchmarkEnd*(r.market==='US'?pf.rate:1),0);
-      const actual=datedReturn(flows,end,asOf), benchmark=datedReturn(flows,benchmarkEnd,asOf);
-      all={market:'ALL',from:flows[0].date,flows,end,benchmarkEnd,actual,benchmark,
-        reason:actual&&benchmark?'':'تعذر استخراج عائد وحيد للمحفظة الشاملة.'};
+    if(this.indexHistory.usStocksDay!==asOf){
+      this.indexHistory.usStocks={};this.indexHistory.usSplits={};this.indexHistory.usStocksDay=asOf;
     }
+    const priorUSCache=state.usHistoryCache||{};
+    const priorUSSplits=state.usSplitCache||{};
+    const updatedUSCache={...priorUSCache},updatedUSSplits={...priorUSSplits};
+    await Promise.allSettled(usSymbols.filter(symbol=>!this.indexHistory.usStocks[symbol])
+      .map(async symbol=>{
+        let fetched=[];
+        try{fetched=await this.prices.getHistory(this.prices.yahooSymbol(symbol,'US'),range);}
+        catch(error){/* استخدم الأسعار المحفوظة محليًا إن وجدت */}
+        const firstBuy=state.lots.filter(l=>l.market==='US'&&l.symbol===symbol)
+          .map(l=>l.buyDate).sort()[0];
+        const merged=mergeCloseHistory(priorUSCache[symbol],fetched)
+          .filter(p=>!firstBuy||p.date>=firstBuy);
+        this.indexHistory.usStocks[symbol]=merged;
+        this.indexHistory.usSplits[symbol]=Array.isArray(fetched.splits)?fetched.splits:priorUSSplits[symbol];
+        if(merged.length) updatedUSCache[symbol]=merged;
+        if(Array.isArray(fetched.splits)) updatedUSSplits[symbol]=fetched.splits;
+      }));
+    if(JSON.stringify(updatedUSCache)!==JSON.stringify(priorUSCache)||
+       JSON.stringify(updatedUSSplits)!==JSON.stringify(priorUSSplits)){
+      state.usHistoryCache=updatedUSCache;state.usSplitCache=updatedUSSplits;
+      try{this.store.save();}catch(error){
+        state.usHistoryCache=priorUSCache;state.usSplitCache=priorUSSplits;
+      }
+    }
+    const histories = {SA:this.indexHistory.tasi,US:this.indexHistory.sp};
+    const saPrice=stockPriceComparison(state,histories.SA,
+      this.indexHistory.saStocks,this.indexHistory.saSplits,'SA',asOf);
+    const usPrice=stockPriceComparison(state,histories.US,
+      this.indexHistory.usStocks,this.indexHistory.usSplits,'US',asOf);
+    const allStocks={...Object.fromEntries(Object.entries(this.indexHistory.saStocks)
+      .map(([symbol,value])=>[`SA:${symbol}`,value])),
+      ...Object.fromEntries(Object.entries(this.indexHistory.usStocks)
+      .map(([symbol,value])=>[`US:${symbol}`,value]))};
+    const allSplits={...Object.fromEntries(Object.entries(this.indexHistory.saSplits)
+      .map(([symbol,value])=>[`SA:${symbol}`,value])),
+      ...Object.fromEntries(Object.entries(this.indexHistory.usSplits)
+      .map(([symbol,value])=>[`US:${symbol}`,value]))};
+    const allPrice=combinedPriceComparison(state,histories,allStocks,allSplits,pf.rate,asOf);
     const rows=[
       {label:'أسعار الأسهم السعودية مقابل تاسي السعري',result:saPrice,fair:true,
         caveat:'المقارنة سعرية للطرفين؛ التوزيعات معروضة منفصلة.'},
       {label:'أسعار الأسهم السعودية مع التوزيعات المستلمة',
-        result:{from:saPrice.from,actual:saPrice.dividends>0?saPrice.withDividends:null,
+        result:{from:saPrice.from,through:saPrice.through,
+          actual:saPrice.dividends>0?saPrice.withDividends:null,
           benchmark:saPrice.benchmark,reason:saPrice.totalReason||(!saPrice.points?saPrice.reason:'')},
         fair:false,caveat:saPrice.dividends>0
           ?'توزيعاتك مُضافة بتاريخ تسجيلها مع إعادة استثمار حسابية؛ تاسي هنا سعري، لذا لا يُحسب فرق عائد.'
           :'لا توجد توزيعات سعودية مسجلة منذ بداية المقارنة.'},
-      {label:'الأمريكية مقابل S&P 500 للعائد الكلي',result:us,fair:true,caveat:''},
-      {label:'الشاملة مقابل مرجع مركب بالتدفقات الفعلية',result:all,fair:required.every(r=>r.market==='US'),
-        caveat:'المرجع المركب يتضمن تاسي السعري؛ لا يُحسب فرق عائد مكافئ.'},
+      {label:'أسعار الأسهم الأمريكية مقابل S&P 500 السعري',result:usPrice,fair:true,
+        caveat:'المقارنة سعرية للطرفين؛ لا تشمل النقد أو التوزيعات أو العمولات.'},
+      {label:'أسعار الأسهم الشاملة مقابل مرجع سعري موزون بالسوقين',result:allPrice,fair:true,
+        caveat:'الفترة اليومية المشتركة فقط؛ أوزان السوقين تتغير مع قيمة الأسهم المحتفظ بها.'},
     ];
     const displayReturn = r => r ? `${pct(r.period)}${r.days>=365?`<small class="sub-sar">سنويًا ${pct(r.annual)}</small>`:''}` : '—';
-    tbl.innerHTML = `<thead><tr><th>المقارنة</th><th>منذ تاريخ</th><th>العائد المحسوب</th>
+    tbl.innerHTML = `<thead><tr><th>المقارنة</th><th>فترة القياس</th><th>العائد المحسوب</th>
       <th>عائد المرجع</th><th>الفرق بالنقاط المئوية</th><th>حالة البيانات</th></tr></thead><tbody>
       ${rows.map(({label,result:r,fair,caveat})=>{
         const diff=fair&&r.actual&&r.benchmark?r.actual.period-r.benchmark.period:null;
-        return `<tr><td style="white-space:normal">${label}</td><td class="num">${r.from||'—'}</td>
+        return `<tr><td style="white-space:normal">${label}</td><td class="num">${r.from&&r.through?`${r.from}<br><small class="sub-sar">إلى ${r.through}</small>`:'—'}</td>
           <td class="num ${r.actual?cls(r.actual.period):''}">${displayReturn(r.actual)}</td>
           <td class="num ${r.benchmark?cls(r.benchmark.period):''}">${displayReturn(r.benchmark)}</td>
           <td class="num ${diff!=null?cls(diff):''}">${diff!=null?fmt.format(diff)+' نقطة':'—'}</td>
-          <td style="white-space:normal;min-width:230px;color:var(--text2)">${htmlEscape(r.reason||caveat||'التدفقات والأسعار مكتملة.')}</td></tr>`;
+          <td style="white-space:normal;min-width:230px;color:var(--text2)">${htmlEscape(r.reason||caveat||'الأسعار التاريخية مكتملة للفترة المعروضة.')}</td></tr>`;
       }).join('')}</tbody>`;
-    note.textContent = `حتى ${asOf} · السعودية من أول إغلاق تاسي متاح بعد بدء الاستثمار، والأمريكية والشاملة من سجل التمويل`;
+    note.textContent = `حساب ${asOf} · كل صف ينتهي بآخر إغلاق متاح له · الشاملة من أول مقطع يومي مشترك`;
     const metricNote=document.getElementById('compareMetricNote');
     const openStats=pf.stats('SA');
     metricNote.hidden=!saPrice.points||!openStats.priced||openStats.cost<=0;
@@ -2376,27 +2517,29 @@ class App {
         ?`بدأت بعض مشترياتك قبل ${saPrice.from}؛ لا تدخل أيامها الأولى في هذه المقارنة لعدم توفر إغلاق تاسي لها في البيانات المحفوظة.`:''}`;
 
     const selected=document.getElementById('compareChartMarket').value;
-    document.getElementById('compareChartTitle').textContent=selected==='SA'
-      ?'أداء أسعار الأسهم السعودية مقابل تاسي (البداية = 100)'
-      :'تطور العائد مع التدفقات (البداية = 100)';
-    const result={SA:sa,US:us,ALL:all}[selected];
+    document.getElementById('compareChartTitle').textContent={
+      SA:'أسعار الأسهم السعودية مقابل تاسي (البداية = 100)',
+      US:'أسعار الأسهم الأمريكية مقابل S&P 500 السعري (البداية = 100)',
+      ALL:'أسعار الأسهم الشاملة مقابل مرجع السوقين السعري (البداية = 100)'
+    }[selected];
+    const result={SA:saPrice,US:usPrice,ALL:allPrice}[selected];
     const chartWrap=document.getElementById('compareChartWrap');
     const chartMessage=document.getElementById('compareChartMessage');
     const dividendNote=document.getElementById('compareDividendNote');
     dividendNote.hidden=selected!=='SA'||!saPrice.points;
     const tradingNote=document.getElementById('compareTradingNote');
-    const sameDaySales=(state.sales||[]).filter(s=>s.market==='SA'&&
-      s.buyDate===s.sellDate&&saPrice.from&&saPrice.through&&
-      s.sellDate>saPrice.from&&s.sellDate<=saPrice.through);
-    tradingNote.hidden=selected!=='SA'||!saPrice.points||!sameDaySales.length;
+    const sameDaySales=(state.sales||[]).filter(s=>(selected==='ALL'||s.market===selected)&&
+      s.buyDate===s.sellDate&&result.from&&result.through&&
+      s.sellDate>result.from&&s.sellDate<=result.through);
+    tradingNote.hidden=!result.points||!sameDaySales.length;
     if(!tradingNote.hidden){
       const recorded=sameDaySales.filter(s=>s.pnl!=null&&Number.isFinite(Number(s.pnl)));
       const net=recorded.reduce((sum,s)=>sum+Number(s.pnl),0);
       tradingNote.textContent=`تنبيه: توجد ${sameDaySales.length} صفقة شراء وبيع للسهم نفسه في اليوم نفسه خلال فترة المقارنة.
-        ${recorded.length===sameDaySales.length?`نتيجتها المحققة المسجلة ${fmt.format(net)} ر.س.`:'لا تتوفر نتيجة محققة مكتملة لها في السجل.'}
+        ${recorded.length===sameDaySales.length&&selected==='SA'?`نتيجتها المحققة المسجلة ${fmt.format(net)} ر.س.`:'لا تدخل نتيجتها المحققة في الخط السعري.'}
         لا تدخل هذه النتيجة في خطي الأسهم المعتمدين على حيازات إغلاق الجلسات.`;
     }
-    document.getElementById('compareImport').hidden=selected!=='SA';
+    document.getElementById('compareImport').hidden=selected==='US';
     if(selected==='SA'&&saPrice.points)
       dividendNote.innerHTML=saPrice.totalReason
         ?`التوزيعات المسجلة: ${fmt.format(saPrice.dividends)} ر.س · ${htmlEscape(saPrice.totalReason)}`
@@ -2407,58 +2550,21 @@ class App {
       if(this.chartMgr.charts.chartCompare){this.chartMgr.charts.chartCompare.destroy();delete this.chartMgr.charts.chartCompare;}
       chartWrap.hidden=true;chartMessage.hidden=false;chartMessage.textContent=message;
     };
-    if(selected==='SA'){
-      if(!saPrice.points){showMessage(saPrice.reason);return;}
-      chartWrap.hidden=false;chartMessage.hidden=true;
-      this.chartMgr.compare({labels:saPrice.points.map(p=>p.date),
-        actual:saPrice.points.map(p=>p.actual),
-        total:saPrice.dividends>0&&saPrice.withDividends?saPrice.points.map(p=>p.total):null,
-        benchmark:saPrice.points.map(p=>p.benchmark),
-        benchmarkLabel:'تاسي · أسعار فقط',priceOnly:true});
-      return;
-    }
-    // لقطات الجيل القديم لا تحتوي رصيد النقد التاريخي؛ لا تُستخدم في منحنى الأسواق الأخرى.
-    if(!result?.actual||!result?.benchmark){
+    if(!result?.points){
       showMessage(result?.reason||'لا تتوفر بيانات كافية للرسم.');return;
     }
-    const benchmarkAt = (market,flows,date) => {
-      if(market==='ALL'){
-        const saFlows=ledgers.SA.ok?ledgers.SA.flows.filter(f=>f.date<=date):[];
-        const usFlows=ledgers.US.ok?ledgers.US.flows.filter(f=>f.date<=date):[];
-        const a=saFlows.length?shadowIndexValue(saFlows,histories.SA,date):0;
-        const u=usFlows.length?shadowIndexValue(usFlows,histories.US,date):0;
-        return a!=null&&u!=null?a+u*pf.rate:null;
-      }
-      return shadowIndexValue(flows,histories[market],date);
-    };
-    const points=[];
-    for(const snap of [...state.snapshots].sort((a,b)=>a.date.localeCompare(b.date))){
-      if(snap.date>asOf) continue;
-      const scopedFlows=result.flows.filter(f=>f.date<=snap.date);
-      if(!scopedFlows.length) continue;
-      const syntheticAt = market => (state.cashMoves||[]).filter(m=>
-        (m.market||'SA')===market&&isSyntheticCash(m)&&m.date<=snap.date)
-        .reduce((sum,m)=>sum+Number(m.amount||0),0);
-      let ending=null;
-      if(selected==='SA'&&Number.isFinite(snap.netWorthSA)) ending=snap.netWorthSA-syntheticAt('SA');
-      if(selected==='US'&&Number.isFinite(snap.netWorthUS)) ending=snap.netWorthUS-syntheticAt('US');
-      if(selected==='ALL'&&Number.isFinite(snap.netWorthSA)&&Number.isFinite(snap.netWorthUS))
-        ending=snap.netWorthSA-syntheticAt('SA')+(snap.netWorthUS-syntheticAt('US'))*pf.rate;
-      if(ending==null) continue;
-      const shadow=benchmarkAt(selected,scopedFlows,snap.date);
-      const actual=datedReturn(scopedFlows,ending,snap.date);
-      const benchmark=shadow!=null?datedReturn(scopedFlows,shadow,snap.date):null;
-      if(actual&&benchmark) points.push({date:snap.date,actual:100+actual.period,benchmark:100+benchmark.period});
-    }
-    const current={date:asOf,actual:100+result.actual.period,benchmark:100+result.benchmark.period};
-    if(points.at(-1)?.date===asOf) points[points.length-1]=current; else points.push(current);
-    if(points.length<2){
-      showMessage('يبدأ الرسم من اللقطات الجديدة التي تحفظ قيمة الأسهم والنقد معًا؛ لا يمكن استعادة الأداء اليومي من اللقطات القديمة الناقصة.');
-      return;
-    }
     chartWrap.hidden=false;chartMessage.hidden=true;
-    this.chartMgr.compare({labels:points.map(p=>p.date),actual:points.map(p=>p.actual),
-      benchmark:points.map(p=>p.benchmark),benchmarkLabel:selected==='SA'?'تاسي السعري':selected==='US'?'S&P 500 للعائد الكلي':'المرجع المركب'});
+    this.chartMgr.compare({labels:result.points.map(p=>p.date),
+      actual:result.points.map(p=>p.actual),
+      total:selected==='SA'&&saPrice.dividends>0&&saPrice.withDividends
+        ?result.points.map(p=>p.total):null,
+      benchmark:result.points.map(p=>p.benchmark),
+      actualLabel:selected==='ALL'?'أسعار أسهم المحفظة الشاملة · دون التوزيعات'
+        :selected==='US'?'أسعار الأسهم الأمريكية · دون التوزيعات'
+        :'أسعار الأسهم السعودية · دون التوزيعات',
+      benchmarkLabel:selected==='SA'?'تاسي · أسعار فقط'
+        :selected==='US'?'S&P 500 · أسعار فقط':'تاسي وS&P 500 · مرجع موزون سعري',
+      priceOnly:true});
   }
 
   /* ---------- ربط جميع الأحداث ---------- */
