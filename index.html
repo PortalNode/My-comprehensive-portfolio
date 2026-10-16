@@ -189,6 +189,10 @@ nav.tabs .ico{width:16px;height:16px}
 .chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--card-shadow)}
 .chart-box h3{font-size:14.5px;font-weight:800;margin-bottom:12px;color:var(--text2)}
 .chart-box .ch{position:relative;height:260px}
+.monthly-caption{color:var(--text2);font-size:12px;line-height:1.8;margin:-2px 0 16px}
+.monthly-scroll{overflow-x:auto;max-width:100%;padding-bottom:6px;direction:ltr}
+.monthly-plot{position:relative;height:365px;min-width:100%}
+.monthly-status{color:var(--text2);font-size:12px;line-height:1.7;margin-top:10px}
 
 /* مقارنة الأداء */
 .perf-table td,.perf-table th{text-align:right}
@@ -488,12 +492,12 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
 <section class="view" id="view-charts">
   <div class="charts-grid">
     <div class="chart-box" style="grid-column:1/-1"><h3>تطور قيمة المحفظة الشاملة (ريال سعودي)</h3><div class="ch"><canvas id="chartEvolution"></canvas></div></div>
-    <div class="chart-box"><h3>نسب الشركات — المحفظة السعودية</h3><div class="ch"><canvas id="chartAllocSA"></canvas></div></div>
-    <div class="chart-box"><h3>نسب الشركات — المحفظة الأمريكية</h3><div class="ch"><canvas id="chartAllocUS"></canvas></div></div>
-    <div class="chart-box"><h3>نسب الشركات — المحفظة الشاملة</h3><div class="ch"><canvas id="chartAlloc"></canvas></div></div>
-    <div class="chart-box"><h3>توزيع الأسواق</h3><div class="ch"><canvas id="chartMarkets"></canvas></div></div>
-    <div class="chart-box"><h3>أكبر المراكز (ريال سعودي)</h3><div class="ch"><canvas id="chartTop"></canvas></div></div>
-    <div class="chart-box"><h3>الأرباح المحققة شهرياً (ريال سعودي)</h3><div class="ch"><canvas id="chartMonthly"></canvas></div></div>
+    <div class="chart-box" style="grid-column:1/-1">
+      <h3>نسبة الربح والخسارة غير المحققة شهريًا</h3>
+      <p class="monthly-caption">تغير أسعار الأسهم التي بقيت مفتوحة بنهاية كل شهر، مقارنة بإغلاق الشهر السابق أو بسعر شرائها إذا أضيفت خلال الشهر. تُستبعد الأسهم المبيعة والتوزيعات. في المحفظة الشاملة تُوزن الأسهم الأمريكية بسعر الصرف المحدد في الإعدادات، دون احتساب تغير سعر الصرف.</p>
+      <div class="monthly-scroll" id="monthlyScroll"><div class="monthly-plot" id="monthlyPlot"><canvas id="chartMonthly"></canvas></div></div>
+      <div class="monthly-status" id="monthlyStatus">جاري تحميل الأسعار التاريخية…</div>
+    </div>
   </div>
 </section>
 
@@ -793,6 +797,8 @@ class Store {
       tasiHistory: [],     // إغلاقات تاسي المستوردة أو المحفوظة من المصدر التلقائي
       stockHistoryCache: {}, // إغلاقات الأسهم السعودية للرسم والنسخة الاحتياطية
       stockSplitCache: {}, // تجزئات الأسهم التاريخية لتوحيد كمية الصفقات مع الأسعار المعدلة
+      usHistoryCache: {},  // إغلاقات الأسهم الأمريكية للرسم الشهري
+      usSplitCache: {},    // تجزئات الأسهم الأمريكية للرسم الشهري
       priceCache: {},      // كاش الأسعار {symbol: {price, prevClose, name, ts}}
       snapshots: [],       // لقطات يومية لقيمة المحفظة
       settings: { usdToSar: 3.75, autoRefresh: true, refreshInterval: 60, theme: 'dark' },
@@ -1373,6 +1379,123 @@ function saPriceComparison(state, tasiHistory, stockHistories, splitHistories, a
     benchmark:asReturn(last.benchmark),dividends};
 }
 
+/* التغير الشهري غير المحقق: الأسهم التي لا تزال مفتوحة عند نهاية كل شهر فقط.
+   نقارنها بإغلاق الشهر السابق، أو بتكلفة الشراء إذا دخلت خلال الشهر. */
+function monthlyUnrealizedSeries(state, histories, splitHistories, usdToSar, asOf=todayStr()){
+  const lots=state.lots||[],sales=state.sales||[];
+  if(!lots.length) return {reason:'أضف صفقة شراء لبدء الرسم الشهري.'};
+  if(!Number.isFinite(usdToSar)||usdToSar<=0)
+    return {reason:'سعر صرف الدولار غير صالح؛ صححه من الإعدادات.'};
+  const keyOf=e=>`${e.market}:${e.symbol}`;
+  const events=[
+    ...lots.map(l=>({kind:'buy',date:l.buyDate,key:keyOf(l),market:l.market,
+      qty:Number(l.qty),price:Number(l.buyPrice),commission:Number(l.commission||0)})),
+    ...sales.map(s=>({kind:'sell',date:s.sellDate,key:keyOf(s),market:s.market,
+      qty:Number(s.qty),price:Number(s.sellPrice)}))
+  ];
+  if(events.some(e=>!['SA','US'].includes(e.market)||!validDay(e.date)||e.date>asOf||
+    !e.key||!Number.isFinite(e.qty)||e.qty<=0||!Number.isFinite(e.price)||e.price<=0||
+    (e.kind==='buy'&&(!Number.isFinite(e.commission)||e.commission<0))))
+    return {reason:'توجد صفقة بتاريخ أو كمية أو سعر أو عمولة غير صالحة؛ راجع سجل الصفقات.'};
+  events.sort((a,b)=>a.date.localeCompare(b.date)||
+    (a.kind==='buy'?-1:1)-(b.kind==='buy'?-1:1));
+  const prices=new Map();
+  for(const key of new Set(events.map(e=>e.key))){
+    const history=histories?.[key];
+    if(!Array.isArray(history)||!history.length)
+      return {reason:`لا تتوفر أسعار تاريخية للسهم ${key}؛ لن نعرض نسبًا ناقصة.`};
+    prices.set(key,history.filter(p=>validDay(p.date)&&p.date<=asOf&&
+      Number.isFinite(p.close)&&p.close>0).sort((a,b)=>a.date.localeCompare(b.date)));
+    if(!prices.get(key).length)
+      return {reason:`لا تتوفر أسعار صالحة للسهم ${key}.`};
+  }
+  const closeAt=(key,date)=>{
+    const history=prices.get(key);
+    let lo=0,hi=history.length;
+    while(lo<hi){const mid=(lo+hi)>>1;if(history[mid].date<=date)lo=mid+1;else hi=mid;}
+    const point=history[lo-1];
+    return point&&dayNumber(date)-dayNumber(point.date)<=7?point:null;
+  };
+  const closeNear=(key,date)=>{
+    const history=prices.get(key);
+    let lo=0,hi=history.length;
+    while(lo<hi){const mid=(lo+hi)>>1;if(history[mid].date<date)lo=mid+1;else hi=mid;}
+    const before=history[lo-1],after=history[lo];
+    const point=after?.date===date?after:before||after;
+    return point&&Math.abs(dayNumber(date)-dayNumber(point.date))<=7?point:null;
+  };
+  for(const e of events){
+    const splits=splitHistories?.[e.key];
+    if(!Array.isArray(splits))
+      return {reason:`يلزم سجل تجزئات السهم ${e.key} لتوحيد الأسعار والكميات؛ حدّث البيانات.`};
+    if(splits.some(s=>!validDay(s.date)||!Number.isFinite(s.ratio)||s.ratio<=0))
+      return {reason:`سجل تجزئات السهم ${e.key} غير صالح.`};
+    const factor=splits.filter(s=>s.date>e.date&&s.date<=asOf)
+      .reduce((v,s)=>v*s.ratio,1);
+    if(Math.abs(factor-1)<1e-8) continue;
+    const close=closeNear(e.key,e.date)?.close;
+    if(close==null) return {reason:`لا يوجد إغلاق قريب من صفقة ${e.key} بتاريخ ${e.date}.`};
+    const adjustedError=Math.abs(Math.log(e.price/close));
+    const originalError=Math.abs(Math.log(e.price/(close*factor)));
+    if(Math.abs(adjustedError-originalError)<0.12)
+      return {reason:`أساس كمية صفقة ${e.key} بتاريخ ${e.date} بعد التجزئة غير واضح.`};
+    if(originalError<adjustedError){e.qty*=factor;e.price/=factor;}
+  }
+  const firstMonth=events.find(e=>e.kind==='buy').date.slice(0,7);
+  const lastMonth=asOf.slice(0,7),held=new Map(),points=[];
+  let eventIndex=0;
+  const nextMonth=month=>new Date(Date.UTC(Number(month.slice(0,4)),
+    Number(month.slice(5,7)),1)).toISOString().slice(0,7);
+  const endOfMonth=month=>new Date(Date.UTC(Number(month.slice(0,4)),
+    Number(month.slice(5,7)),0)).toISOString().slice(0,10);
+  for(let month=firstMonth;month<=lastMonth;month=nextMonth(month)){
+    const end=endOfMonth(month)<asOf?endOfMonth(month):asOf;
+    while(eventIndex<events.length&&events[eventIndex].date<=end){
+      const e=events[eventIndex++];
+      if(!held.has(e.key)) held.set(e.key,[]);
+      const positions=held.get(e.key);
+      if(e.kind==='buy'){
+        positions.push({date:e.date,qty:e.qty,unitCost:e.price+e.commission/e.qty,
+          market:e.market});
+      } else {
+        let remaining=e.qty;
+        for(const lot of positions){
+          const used=Math.min(lot.qty,remaining);
+          lot.qty-=used;remaining-=used;
+          if(remaining<1e-8) break;
+        }
+        if(remaining>1e-7)
+          return {reason:`كمية مبيعات السهم ${e.key} تتجاوز المشتريات التاريخية.`};
+      }
+    }
+    const previousEnd=new Date(Date.UTC(Number(month.slice(0,4)),
+      Number(month.slice(5,7))-1,0)).toISOString().slice(0,10);
+    let basis=0,value=0,lastClose='',missing='';
+    for(const [key,positions] of held){
+      const active=positions.filter(l=>l.qty>1e-8);
+      if(!active.length) continue;
+      const atEnd=closeAt(key,end);
+      if(!atEnd){missing=`لا يتوفر سعر نهاية ${month} للسهم ${key}.`;break;}
+      for(const lot of active){
+        if(atEnd.date<lot.date){missing=`لا يتوفر سعر بعد شراء السهم ${key} في ${month}.`;break;}
+        const start=lot.date.slice(0,7)===month
+          ?{close:lot.unitCost}:closeAt(key,previousEnd);
+        if(!start){missing=`لا يتوفر سعر بداية ${month} للسهم ${key}.`;break;}
+        const multiplier=lot.market==='US'?usdToSar:1;
+        basis+=lot.qty*start.close*multiplier;
+        value+=lot.qty*atEnd.close*multiplier;
+      }
+      if(missing) break;
+      if(!lastClose||atEnd.date<lastClose) lastClose=atEnd.date;
+    }
+    points.push({month,end,closeDate:lastClose,
+      pct:missing||basis<=0?null:(value-basis)/basis*100,
+      amount:missing||basis<=0?null:value-basis,basis:missing||basis<=0?null:basis,
+      reason:missing||(!basis?'لا توجد حيازات مفتوحة بنهاية الشهر.':'')});
+  }
+  return {points,from:firstMonth,through:lastMonth};
+}
+
 /* ============================================================================
    ChartManager — الرسوم البيانية باستخدام Chart.js
    ============================================================================ */
@@ -1440,10 +1563,6 @@ class ChartManager {
   }
   renderAll(){
     this.evolution();
-    this.allocation('chartAllocSA','SA');
-    this.allocation('chartAllocUS','US');
-    this.allocation('chartAlloc','ALL');
-    this.markets(); this.topPositions(); this.monthly();
   }
   evolution(){
     const snaps = this.pf.s.snapshots;
@@ -1492,21 +1611,35 @@ class ChartManager {
         scales:{x:{ticks:{callback:v=>fmt0.format(v)}}}}
     });
   }
-  monthly(){
-    // تجميع الأرباح المحققة (بالريال) حسب الشهر
-    const byMonth = {};
-    for(const s of this.pf.s.sales){
-      const m = s.sellDate.slice(0,7);
-      byMonth[m] = (byMonth[m]||0) + this.pf.toSAR(s.pnl, s.market);
-    }
-    const months = Object.keys(byMonth).sort();
+  monthly(series){
+    const points=series.points||[];
+    const scroll=document.getElementById('monthlyScroll');
+    const newMonth=this.monthlyLastMonth!==points.at(-1)?.month;
+    document.getElementById('monthlyPlot').style.width=Math.max(scroll.clientWidth,points.length*58)+'px';
     this.make('chartMonthly', {
       type:'bar',
-      data:{labels:months,
-        datasets:[{label:'الربح/الخسارة المحققة', data:months.map(m=>byMonth[m]),
-          backgroundColor:months.map(m=>byMonth[m]>=0?'#26c281':'#f25f5c'), borderRadius:6}]},
-      options:{maintainAspectRatio:false, plugins:{legend:{display:false}}}
+      data:{labels:points.map(p=>p.month),
+        datasets:[{label:'التغير غير المحقق خلال الشهر',data:points.map(p=>p.pct),
+          backgroundColor:points.map(p=>p.pct==null?'#8b97a8':p.pct>=0?'#26c281':'#f25f5c'),
+          borderRadius:6,maxBarThickness:37}]},
+      options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},tooltip:{callbacks:{
+          label:ctx=>{
+            const point=points[ctx.dataIndex];
+            return point.pct==null?point.reason:
+              `${pct(point.pct)} · ${fmt.format(point.amount)} ر.س من أساس ${fmt.format(point.basis)} ر.س`;
+          },
+          afterLabel:ctx=>{
+            const point=points[ctx.dataIndex];
+            return point.closeDate?`أقدم إغلاق مستخدم ضمن الحيازات: ${point.closeDate}`:'';
+          }
+        }}},
+        scales:{x:{ticks:{maxRotation:0,autoSkip:false}},
+          y:{grid:{color:ctx=>ctx.tick.value===0?'#8b97a8':undefined},
+            ticks:{callback:v=>fmt.format(v)+'%'}}}}
     });
+    if(newMonth) scroll.scrollLeft=scroll.scrollWidth;
+    this.monthlyLastMonth=points.at(-1)?.month;
   }
   /* عائد المحفظة والمرجع بعد ضبط كل نقطة بالتدفقات الخارجية حتى تاريخها */
   compare(series){
@@ -1562,7 +1695,7 @@ class UI {
     document.getElementById('pageTitle').textContent = titles[v] || 'محفظتي';
     document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active', s.id==='view-'+v));
     this.render();
-    if(v==='charts') this.app.chartMgr.renderAll();
+    if(v==='charts'){this.app.chartMgr.renderAll();this.app.renderMonthly();}
     if(v==='compare') this.app.renderCompare();
   }
   openModal(id){ document.getElementById(id).classList.add('open'); }
@@ -1884,6 +2017,10 @@ class App {
     this.refreshTimer = null;
     this.refreshingPrices = false;
     this.indexHistory = {}; // كاش بيانات المؤشرات التاريخية للمقارنة
+    this.monthlyFetchedAt = 0;
+    this.monthlyFetchedDay = '';
+    this.monthlyFetchFailed = false;
+    this.monthlyPromise = null;
   }
 
   /* ---------- بيانات تجريبية عند أول تشغيل ---------- */
@@ -1996,7 +2133,9 @@ class App {
         document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
       dot.className = 'status-dot ' + (failures===0 ? 'ok' : (failures < requested.length ? 'wait' : 'err'));
       this.ui.render();
-      if(this.ui.activeView==='charts') this.chartMgr.renderAll();
+      if(this.ui.activeView==='charts'){
+        this.chartMgr.renderAll();this.renderMonthly();
+      }
       if(this.ui.activeView==='compare') this.renderCompare();
       if(manual) this.ui.toast(failures===0 ? 'تم تحديث الأسعار بنجاح' : `تم التحديث مع ${failures} رمز متعذر`, failures===0);
     }finally{
@@ -2009,6 +2148,80 @@ class App {
       this.refreshTimer = setInterval(()=> this.refreshPrices(false),
         Math.max(20, this.store.state.settings.refreshInterval) * 1000);
     }
+  }
+
+  /* تحديث التاريخ ثم إعادة بناء الأشهر من سجل الصفقات دون الاعتماد على اللقطات الناقصة. */
+  renderMonthly(){
+    if(this.monthlyPromise) return this.monthlyPromise;
+    this.monthlyPromise=this._renderMonthly().catch(()=>{
+      document.getElementById('monthlyStatus').textContent='تعذر بناء الرسم الشهري؛ أعد المحاولة بعد تحديث الأسعار.';
+    }).finally(()=>{this.monthlyPromise=null;});
+    return this.monthlyPromise;
+  }
+  async _renderMonthly(){
+    const state=this.store.state,asOf=todayStr();
+    const status=document.getElementById('monthlyStatus');
+    const scroll=document.getElementById('monthlyScroll');
+    const keys=[...new Set([...(state.lots||[]),...(state.sales||[])]
+      .map(e=>`${e.market}:${e.symbol}`))];
+    if(!keys.length){
+      scroll.hidden=true;status.textContent='أضف صفقة شراء لبدء الرسم الشهري.';return;
+    }
+    if(keys.some(key=>!/^(SA|US):[A-Z0-9.^=-]+$/i.test(key))){
+      scroll.hidden=true;status.textContent='يوجد رمز سهم غير صالح في سجل الصفقات.';return;
+    }
+    status.textContent='جاري التحقق من الأسعار التاريخية…';
+    const firstBuy=state.lots.map(l=>l.buyDate).filter(validDay).sort()[0];
+    const days=firstBuy?dayNumber(asOf)-dayNumber(firstBuy):0;
+    const range=days<=85?'3mo':days<=175?'6mo':days<=360?'1y':days<=720?'2y':days<=1800?'5y':'max';
+    const historyCache=market=>market==='SA'
+      ?(state.stockHistoryCache ||= {}):(state.usHistoryCache ||= {});
+    const splitCache=market=>market==='SA'
+      ?(state.stockSplitCache ||= {}):(state.usSplitCache ||= {});
+    const missing=keys.some(key=>{
+      const [market,symbol]=key.split(':');
+      return !historyCache(market)[symbol]?.length||!Array.isArray(splitCache(market)[symbol]);
+    });
+    const age=Date.now()-this.monthlyFetchedAt;
+    const refresh=this.monthlyFetchedDay!==asOf||
+      age>(this.monthlyFetchFailed||missing?10:60)*60000;
+    if(refresh){
+      const queue=[...keys];let failed=false,changed=false;
+      await Promise.all(Array.from({length:Math.min(4,queue.length)},async()=>{
+        while(queue.length){
+          const key=queue.shift(),[market,symbol]=key.split(':');
+          try{
+            const fetched=await this.prices.getHistory(this.prices.yahooSymbol(symbol,market),range);
+            const history=historyCache(market),splits=splitCache(market);
+            history[symbol]=mergeCloseHistory(history[symbol],fetched);
+            splits[symbol]=fetched.splits;
+            changed=true;
+          }catch(error){failed=true;}
+        }
+      }));
+      this.monthlyFetchedDay=asOf;this.monthlyFetchedAt=Date.now();
+      this.monthlyFetchFailed=failed;
+      if(changed) try{this.store.save();}catch(error){
+        status.textContent='تعذر حفظ الأسعار التاريخية محليًا؛ سيعاد جلبها عند الزيارة القادمة.';
+      }
+    }
+    const histories={},splits={};
+    for(const key of keys){
+      const [market,symbol]=key.split(':');
+      histories[key]=historyCache(market)[symbol];
+      splits[key]=splitCache(market)[symbol];
+    }
+    const series=monthlyUnrealizedSeries(state,histories,splits,
+      Number(state.settings.usdToSar),asOf);
+    if(series.reason){
+      scroll.hidden=true;status.textContent=series.reason;return;
+    }
+    scroll.hidden=false;this.chartMgr.monthly(series);
+    const unavailable=series.points.filter(p=>p.pct==null&&
+      !p.reason.startsWith('لا توجد حيازات')).length;
+    const latest=series.points.at(-1);
+    status.textContent=`من ${series.from} إلى ${series.through} · الشهر الجاري مؤقت؛ أقدم إغلاق مستخدم ${latest.closeDate||'غير متاح'}.`+
+      (unavailable?` ${unavailable} شهر بلا نسبة لعدم اكتمال الأسعار.`:'');
   }
 
   /* ---------- مقارنة الأداء ---------- */
@@ -2322,7 +2535,9 @@ class App {
       document.body.classList.toggle('light');
       this.store.state.settings.theme = document.body.classList.contains('light') ? 'light' : 'dark';
       this.store.save();
-      if(this.ui.activeView==='charts') this.chartMgr.renderAll();
+      if(this.ui.activeView==='charts'){
+        this.chartMgr.renderAll();this.renderMonthly();
+      }
     });
     // نموذج الشراء
     $('fetchPriceBtn').addEventListener('click', async ()=>{
