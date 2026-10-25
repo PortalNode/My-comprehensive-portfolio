@@ -47,6 +47,7 @@ header{
 .index-chip{
   background:var(--bg); border:1px solid var(--border); border-radius:10px;
   padding:6px 12px; display:flex; align-items:center; gap:8px; font-size:13px;
+  flex:1 1 0; min-width:max-content;
 }
 .index-chip .iname{color:var(--text2);font-weight:700}
 .index-chip .ival{font-weight:800}
@@ -339,7 +340,7 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
 @media(max-width:720px){
   body{display:block;padding-bottom:64px;background:var(--bg)}
   header{padding:22px 16px 16px}.header-row{align-items:center}.header-title{display:none}
-  header .logo{display:flex;font-size:23px}.indices{order:3;flex:0 0 100%;flex-wrap:nowrap;overflow-x:auto}
+  header .logo{display:flex;font-size:23px}.indices{order:3;flex:0 0 100%;display:grid;grid-template-columns:repeat(2,minmax(max-content,1fr));overflow-x:auto}
   .index-chip{min-width:max-content}.header-actions{margin-inline-start:auto}.last-update{display:none}
   .header-actions .switch{font-size:11px}.header-actions .btn{padding:7px 9px;font-size:11px}
   nav.tabs{position:fixed;top:auto;bottom:0;right:0;left:0;width:100%;height:64px;padding:7px 8px;
