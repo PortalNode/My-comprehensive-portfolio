@@ -386,6 +386,20 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
 .co-logo-sm{width:22px;height:22px;font-size:11px;margin-inline-end:8px}
 .stock-id .co-logo{margin-inline-end:0}
 .holding-mobile-name .co-logo{width:26px;height:26px;font-size:12px}
+
+/* ============================================================
+   تحليل المراكز: وزن كل سهم وسعر التعادل وأثر تحرك السعر
+   ============================================================ */
+.weight-cell{display:flex;align-items:center;gap:8px;min-width:110px}
+.weight-bar{flex:1;height:7px;border-radius:7px;background:var(--bg3);overflow:hidden;min-width:48px}
+.weight-bar span{display:block;height:100%;border-radius:7px;background:var(--accent)}
+.analysis-note{padding:13px 18px;border-top:1px solid var(--border);color:var(--text2);font-size:12px;line-height:1.8}
+.analysis-note strong{color:var(--text)}
+.be-flat{color:var(--green);font-weight:700}
+.sc-sub{display:block;font-size:11px;color:var(--text2);font-weight:500}
+#view-analysis table{min-width:960px}
+#view-analysis th{white-space:normal;line-height:1.4;vertical-align:bottom}
+#view-analysis td .stock-id{min-width:0}
 </style>
 </head>
 <body>
@@ -421,6 +435,7 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
   <button data-view="dividends"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>التوزيعات النقدية</button>
   <button data-view="cash"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>الرصيد النقدي</button>
   <button data-view="compare"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>مقارنة الأداء</button>
+  <button data-view="analysis"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>تحليل المراكز</button>
   <button data-view="charts"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>الرسوم البيانية</button>
   <button data-view="settings"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>الإعدادات</button>
 </nav>
@@ -507,6 +522,9 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
       <span>لإطالة تاريخ المقارنة الشاملة، استورد إغلاقات تاسي اليومية منذ بداية استثمارك الأمريكي بملف يحتوي عمودي التاريخ والإغلاق. تُحفظ البيانات ضمن النسخة الاحتياطية. <a href="https://returnsview.com/stock/TASI/" target="_blank" rel="noopener noreferrer">مصدر بيانات تاسي الحالي</a></span></div>
   </div>
 </section>
+
+<!-- ===== تحليل المراكز ===== -->
+<section class="view" id="view-analysis"></section>
 
 <!-- ===== الرسوم البيانية ===== -->
 <section class="view" id="view-charts">
@@ -1865,7 +1883,7 @@ class UI {
     document.getElementById('marketSwitch').hidden = !['sa','us','all'].includes(v);
     const titles = {sa:'نظرة عامة على محفظتك',us:'نظرة عامة على محفظتك',all:'نظرة عامة على محفظتك',
       records:'سجل الصفقات',dividends:'التوزيعات النقدية',cash:'الرصيد النقدي',compare:'مقارنة الأداء',
-      charts:'الرسوم البيانية',settings:'الإعدادات'};
+      charts:'الرسوم البيانية',analysis:'تحليل المراكز',settings:'الإعدادات'};
     document.getElementById('pageTitle').textContent = titles[v] || 'محفظتي';
     document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active', s.id==='view-'+v));
     this.render();
@@ -2153,6 +2171,71 @@ class UI {
       </tr>`).join('')}</tbody></table>`;
   }
 
+
+  /* ---------- تحليل المراكز: حسابات رقمية من بياناتك فقط، دون توصيات ---------- */
+  renderAnalysis(){
+    const wrap = document.getElementById('view-analysis');
+    const pf = this.app.portfolio;
+    const scope = this.analysisScope || 'ALL';
+    const st = pf.stats(scope);
+    const cv = p => (v => scope==='ALL' ? pf.toSAR(v,p.market) : v);
+    const cur = v => scope==='US' ? '$'+fmt.format(v) : fmt.format(v)+' ر.س';
+    const list = pf.positions(scope).filter(p=>p.value!=null)
+      .sort((a,b)=> cv(b)(b.value)-cv(a)(a.value));
+    const total = list.reduce((s,p)=>s+cv(p)(p.value),0);
+    const top = list[0];
+    const top2 = list.slice(0,2).reduce((s,p)=>s+p.weight,0);
+    const cashShare = st.netWorth>0 ? st.cash/st.netWorth*100 : null;
+    const topImpact = top ? cv(top)(top.value)*0.10 : 0;
+    const cards = [
+      ['أكبر مركز', top ? fmt.format(top.weight)+'%' : '—', top ? htmlEscape(top.name||top.symbol) : ''],
+      ['تركّز أكبر سهمين', list.length ? fmt.format(top2)+'%' : '—', 'من قيمة الأسهم'],
+      ['النقد من صافي الثروة', cashShare==null ? '—' : fmt.format(cashShare)+'%', cur(st.cash)],
+      ['أثر تحرك 10% في أكبر مركز', top ? cur(topImpact) : '—', top ? 'صعوداً أو نزولاً · '+fmt.format(top.weight*0.10)+'% من قيمة الأسهم' : '']
+    ].map(c=>`<div class="card"><div class="clabel">${c[0]}</div><div class="cval">${c[1]}</div>${c[2]?`<div class="csub">${c[2]}</div>`:''}</div>`).join('');
+
+    const rows = list.map(p=>{
+      const conv = cv(p);
+      const need = p.price < p.avgCost ? (p.avgCost/p.price-1)*100 : null;
+      return `<tr>
+        <td><div class="stock-id">${logoHtml(p.symbol,p.market,p.name,'sm')}<span class="stock-name">${htmlEscape(p.name||'—')}</span><span class="sym-badge">${htmlEscape(p.symbol)}</span></div></td>
+        <td><span class="mkt-badge mkt-${p.market}">${p.market==='SA'?'سعودي':'أمريكي'}</span></td>
+        <td class="num">${fmt0.format(p.qty)}</td>
+        <td class="num">${money(p.avgCost,p.market)}</td>
+        <td class="num">${money(p.price,p.market)}</td>
+        <td class="num">${cur(conv(p.value))}</td>
+        <td><div class="weight-cell"><span class="num">${fmt.format(p.weight)}%</span><span class="weight-bar"><span style="width:${Math.min(100,p.weight)}%"></span></span></div></td>
+        <td class="num ${cls(p.pnl)}">${pct(p.pnlPct)}</td>
+        <td class="num">${need==null ? '<span class="be-flat">فوق التكلفة</span>' : '+'+fmt.format(need)+'%'}</td>
+        <td class="num">${cur(conv(p.value)*0.10)}<span class="sc-sub">${fmt.format(p.weight*0.10)}% من قيمة الأسهم</span></td>
+      </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `<div class="cards">${cards}</div>
+      <div class="panel">
+        <div class="panel-head">
+          <div><h2>تحليل المراكز المفتوحة</h2>
+            <div class="head-subtitle" style="font-size:12px;color:var(--text2);margin-top:4px">${list.length} مراكز · القيمة الإجمالية ${cur(total)} · مرتبة حسب الوزن</div></div>
+          <div class="toolbar">
+            <select id="analysisScope" aria-label="نطاق التحليل">
+              <option value="ALL" ${scope==='ALL'?'selected':''}>كل الأسواق (بالريال)</option>
+              <option value="SA" ${scope==='SA'?'selected':''}>السوق السعودي</option>
+              <option value="US" ${scope==='US'?'selected':''}>السوق الأمريكي</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">${list.length===0 ? '<div class="empty-msg">لا توجد مراكز مسعّرة للتحليل</div>' : `
+          <table><thead><tr>
+            <th>السهم</th><th>السوق</th><th>الكمية</th><th>متوسط التكلفة (سعر التعادل)</th><th>السعر الحالي</th>
+            <th>القيمة السوقية</th><th>الوزن</th><th>الربح/الخسارة</th><th>الارتفاع اللازم للتعادل</th><th>أثر تحرك 10% (صعوداً أو نزولاً)</th>
+          </tr></thead><tbody>${rows}</tbody></table>`}
+        </div>
+        <div class="analysis-note"><strong>كيف تُقرأ الأرقام:</strong> الوزن هو حصة السهم من قيمة الأسهم الحالية. سعر التعادل هو متوسط تكلفة الشراء شاملاً عمولة الشراء ولا يشمل عمولة البيع. «الارتفاع اللازم للتعادل» هو نسبة صعود السعر الحالي للوصول إلى هذا المتوسط. أثر تحرك 10% هو التغير في قيمة المركز إذا تحرك سعره 10% صعوداً أو نزولاً. هذه حسابات رقمية من بياناتك وليست توصية بالشراء أو البيع.</div>
+      </div>`;
+    const sel = document.getElementById('analysisScope');
+    sel.addEventListener('change', ()=>{ this.analysisScope = sel.value; this.renderAnalysis(); });
+  }
+
   /* ---------- العرض العام حسب التبويب النشط ---------- */
   render(){
     const v = this.activeView;
@@ -2160,6 +2243,7 @@ class UI {
     else if(v==='records') this.renderRecords();
     else if(v==='dividends') this.renderDividends();
     else if(v==='cash') this.renderCash();
+    else if(v==='analysis') this.renderAnalysis();
   }
 
   /* ---------- شريط الأداء الكلي للمحفظتين في الترويسة ---------- */
