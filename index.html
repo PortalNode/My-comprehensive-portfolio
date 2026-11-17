@@ -25,7 +25,7 @@ body.light{
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{
-  font-family:'SF Arabic','Geeza Pro','Noto Sans Arabic',Tahoma,sans-serif;
+  font-family:'SF Arabic','SF Pro Arabic','Helvetica Neue',Arial,sans-serif;
   background:var(--bg); color:var(--text); min-height:100vh;
   font-size:15px; line-height:1.55;
 }
@@ -237,7 +237,7 @@ body.light{
   --text:#182438;--text2:#52647c;--accent:#426adb;--accent2:#6552d4;
   --green:#087f71;--red:#c44644;--gold:#9e6e16;--card-shadow:none;
 }
-body{font-family:'SF Arabic','Geeza Pro','Noto Sans Arabic',Tahoma,sans-serif;
+body{font-family:'SF Arabic','SF Pro Arabic','Helvetica Neue',Arial,sans-serif;
   display:grid;grid-template-columns:214px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);
   background:radial-gradient(circle at 75% -14%,#19305a 0,transparent 34%),var(--bg)}
 header{grid-column:2;grid-row:1;position:relative;top:auto;border:0;background:transparent;
@@ -377,6 +377,15 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
   .allocation-panel{min-height:0}.allocation-list{max-height:300px}
   .compare-chart-head{align-items:stretch;flex-direction:column}
 }
+
+/* ============================================================
+   شعارات الشركات (نفس أسلوب «قطاعات السوق»: دائرة، وحرف أول عند غياب الشعار)
+   ============================================================ */
+.co-logo{flex:none;display:inline-grid;place-items:center;border-radius:50%;object-fit:cover;vertical-align:middle;box-shadow:0 0 0 1px var(--border);background:#fff}
+.co-logo-letter{background:var(--bg3);color:var(--text2);font-weight:700;line-height:1}
+.co-logo-sm{width:22px;height:22px;font-size:11px;margin-inline-end:8px}
+.stock-id .co-logo{margin-inline-end:0}
+.holding-mobile-name .co-logo{width:26px;height:26px;font-size:12px}
 </style>
 </head>
 <body>
@@ -792,6 +801,31 @@ const SA_NAMES = {
 function displayName(symbol, market, fallback){
   return (market==='SA' && SA_NAMES[symbol]) ? SA_NAMES[symbol] : (fallback||'');
 }
+
+/* ---------- شعارات الشركات ----------
+   الملفات في logos/<الرمز>.svg والقائمة أدناه تحدد المتوفر منها حتى لا يُطلب ملف غير موجود؛
+   وتُعرض الحرف الأول من اسم الشركة عند غياب الشعار (مثل مشروع قطاعات السوق). */
+const LOGO_FILES = {
+  SA: new Set(["1010", "1020", "1030", "1050", "1060", "1080", "1111", "1120", "1140", "1150", "1180", "1182", "1183", "1201", "1202", "1210", "1211", "1212", "1213", "1214", "1301", "1302", "1303", "1304", "1320", "1321", "1322", "1323", "1324", "1325", "1810", "1820", "1830", "1831", "1832", "1833", "1834", "1835", "2001", "2010", "2020", "2030", "2040", "2050", "2060", "2070", "2080", "2081", "2082", "2083", "2084", "2090", "2100", "2110", "2120", "2130", "2140", "2150", "2160", "2170", "2180", "2190", "2200", "2210", "2220", "2222", "2223", "2230", "2240", "2250", "2270", "2280", "2281", "2282", "2283", "2284", "2285", "2286", "2287", "2288", "2290", "2300", "2310", "2320", "2330", "2340", "2350", "2360", "2370", "2380", "2381", "2382", "3002", "3003", "3004", "3005", "3007", "3008", "3010", "3020", "3030", "3040", "3050", "3060", "3080", "3090", "3091", "3092", "4001", "4002", "4003", "4004", "4005", "4006", "4007", "4008", "4009", "4011", "4012", "4013", "4014", "4015", "4016", "4017", "4018", "4019", "4020", "4021", "4030", "4031", "4040", "4050", "4051", "4061", "4070", "4071", "4072", "4080", "4081", "4082", "4083", "4084", "4090", "4100", "4110", "4130", "4140", "4141", "4142", "4143", "4144", "4145", "4146", "4147", "4148", "4150", "4161", "4162", "4163", "4164", "4165", "4170", "4180", "4190", "4191", "4192", "4193", "4194", "4200", "4210", "4220", "4230", "4240", "4250", "4260", "4261", "4262", "4263", "4264", "4265", "4270", "4280", "4290", "4291", "4292", "4300", "4310", "4320", "4321", "4322", "4323", "4324", "4325", "4326", "4327", "4328", "4330", "4331", "4332", "4333", "4334", "4335", "4336", "4337", "4338", "4339", "4340", "4342", "4344", "4345", "4346", "4347", "4348", "4349", "4350", "5110", "6001", "6002", "6004", "6010", "6012", "6013", "6014", "6015", "6016", "6017", "6018", "6019", "6020", "6022", "6040", "6050", "6060", "6070", "6090", "7010", "7020", "7030", "7040", "7200", "7201", "7202", "7203", "7204", "7205", "7211", "8010", "8012", "8020", "8030", "8040", "8050", "8060", "8070", "8100", "8120", "8150", "8160", "8170", "8180", "8190", "8200", "8210", "8230", "8240", "8250", "8260", "8280", "8300", "8310", "8311", "8313"]),
+  US: new Set(["GOOGL", "IBIT", "MU", "NVDA", "SPCX"])
+};
+const logoFile = (symbol, market) => String(symbol||'').toUpperCase().replace(/[^A-Z0-9]+/g,'-');
+function logoLetter(name, symbol, size){
+  const ch = (String(name||'').trim() || String(symbol||'').trim()).charAt(0).toUpperCase();
+  return `<span class="co-logo co-logo-letter co-logo-${size}" aria-hidden="true">${htmlEscape(ch)}</span>`;
+}
+function logoHtml(symbol, market, name, size){
+  size = size || 'sm';
+  const key = logoFile(symbol, market);
+  if(!(LOGO_FILES[market] && LOGO_FILES[market].has(key))) return logoLetter(name, symbol, size);
+  return `<img class="co-logo co-logo-${size}" src="logos/${key}.svg" alt="" width="22" height="22" loading="lazy" decoding="async" aria-hidden="true" data-logo-name="${htmlEscape(name||'')}" data-logo-symbol="${htmlEscape(symbol)}" data-logo-size="${size}">`;
+}
+// صورة تعذّر تحميلها → الحرف الأول بدل أيقونة مكسورة
+document.addEventListener('error', e=>{
+  const img = e.target;
+  if(!img || img.tagName!=='IMG' || !img.classList.contains('co-logo')) return;
+  img.outerHTML = logoLetter(img.dataset.logoName, img.dataset.logoSymbol, img.dataset.logoSize||'sm');
+}, true);
 
 /* ============================================================================
    Store — التخزين في LocalStorage + الاستيراد والتصدير والنسخ الاحتياطي
@@ -1677,7 +1711,7 @@ class ChartManager {
             font: ctx => {
               // السطر الأول (الاسم) أعرض قليلاً من النسبة
               const big = ctx.dataset.data[ctx.dataIndex]/sum >= 0.15;
-              return {weight:'bold', size: big ? 12 : 10.5, family:'SF Arabic, Geeza Pro, Noto Sans Arabic, Tahoma', lineHeight:1.25};
+              return {weight:'bold', size: big ? 12 : 10.5, family:'SF Arabic, SF Pro Arabic, Helvetica Neue, Arial, sans-serif', lineHeight:1.25};
             },
             textShadowBlur:6, textShadowColor:'rgba(0,0,0,.55)',
           }
@@ -1697,7 +1731,7 @@ class ChartManager {
     const {text, grid} = this.colors();
     Chart.defaults.color = text;
     Chart.defaults.borderColor = grid;
-    Chart.defaults.font.family = 'SF Arabic, Geeza Pro, Noto Sans Arabic, Tahoma';
+    Chart.defaults.font.family = 'SF Arabic, SF Pro Arabic, Helvetica Neue, Arial, sans-serif';
     this.charts[id] = new Chart(el, config);
   }
   renderAll(){
@@ -1746,7 +1780,7 @@ class ChartManager {
           // نسبة المركز من إجمالي المحفظة على طرف الشريط
           datalabels:{display:true, anchor:'end', align:'start',
             formatter: v => fmt.format(v/total*100)+'%',
-            color:'#fff', font:{weight:'bold', size:11, family:'SF Arabic, Geeza Pro, Noto Sans Arabic, Tahoma'}}},
+            color:'#fff', font:{weight:'bold', size:11, family:'SF Arabic, SF Pro Arabic, Helvetica Neue, Arial, sans-serif'}}},
         scales:{x:{ticks:{callback:v=>fmt0.format(v)}}}}
     });
   }
@@ -1892,7 +1926,7 @@ class UI {
       return `<tr>
         <td><span class="sym-badge">${htmlEscape(p.symbol)}</span>${p.lots.length>1
           ? `<span class="lot-badge" title="اشتريت هذا السهم على ${p.lots.length} دفعات">${p.lots.length} دفعات</span>` : ''}</td>
-        <td><span class="stock-name">${htmlEscape(p.name||'—')}</span></td>
+        <td><div class="stock-id">${logoHtml(p.symbol,p.market,p.name,'sm')}<span class="stock-name">${htmlEscape(p.name||'—')}</span></div></td>
         <td><span class="mkt-badge mkt-${p.market}">${p.market==='SA'?'سعودي':'أمريكي'}</span></td>
         <td class="num">${fmt0.format(p.qty)}</td>
         <td class="num">${p.firstBuy}</td>
@@ -1913,7 +1947,7 @@ class UI {
       const detail = (label,value)=>`<div>${label}<strong>${value}</strong></div>`;
       return `<article class="holding-mobile">
         <div class="holding-mobile-top">
-          <div class="holding-mobile-name">${htmlEscape(p.name||p.symbol)}
+          <div class="holding-mobile-name">${logoHtml(p.symbol,p.market,p.name,'sm')}${htmlEscape(p.name||p.symbol)}
             <small>${htmlEscape(p.symbol)} · ${p.market==='SA'?'السوق السعودي':'السوق الأمريكي'}
               ${p.lots.length>1?' · '+p.lots.length+' دفعات':''}</small></div>
           <div class="holding-mobile-value">${p.value!=null?moneyDual(p.value,p.market,pf.rate):'—'}
@@ -1999,7 +2033,7 @@ class UI {
     };
     const stockId = x => {
       const name = saleName(x);
-      return `<div class="stock-id">${name ? `<span class="stock-name" dir="auto">${name}</span>` : ''}<span class="sym-badge">${x.symbol}</span></div>`;
+      return `<div class="stock-id">${logoHtml(x.symbol,x.market,name,'sm')}${name ? `<span class="stock-name" dir="auto">${name}</span>` : ''}<span class="sym-badge">${x.symbol}</span></div>`;
     };
     if(this.activeRecord==='buys'){
       const lots = [...s.lots].sort((a,b)=>b.buyDate.localeCompare(a.buyDate));
@@ -2007,7 +2041,7 @@ class UI {
         <table><thead><tr><th>الرمز</th><th>الاسم</th><th>السوق</th><th>تاريخ الشراء</th><th>الكمية</th>
         <th>المتبقي</th><th>سعر الشراء</th><th>العمولة</th><th>التكلفة الإجمالية</th><th>ملاحظات</th><th></th></tr></thead><tbody>
         ${lots.map(l=>`<tr>
-          <td><span class="sym-badge">${l.symbol}</span></td><td>${l.name||'—'}</td><td>${mkt(l.market)}</td>
+          <td><span class="sym-badge">${l.symbol}</span></td><td>${logoHtml(l.symbol,l.market,l.name,'sm')}${l.name||'—'}</td><td>${mkt(l.market)}</td>
           <td class="num">${l.buyDate}</td><td class="num">${fmt0.format(l.qty)}</td>
           <td class="num">${fmt0.format(l.remainingQty)}</td>
           <td class="num">${fmt.format(l.buyPrice)}</td><td class="num">${fmt.format(l.commission||0)}</td>
@@ -2065,7 +2099,7 @@ class UI {
           || (s.lots.find(l=>l.symbol===d.symbol && l.market===d.market)||{}).name || '—';
         return `<tr>
         <td><span class="sym-badge">${d.symbol}</span></td>
-        <td>${nm}</td>
+        <td>${logoHtml(d.symbol,d.market,nm,'sm')}${nm}</td>
         <td><span class="mkt-badge mkt-${d.market}">${d.market==='SA'?'سعودي':'أمريكي'}</span></td>
         <td class="num">${d.date}</td>
         <td class="num">${d.perShare!=null?fmt.format(d.perShare):'—'}</td>
