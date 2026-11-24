@@ -405,6 +405,117 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
 #view-analysis table{min-width:960px}
 #view-analysis th{white-space:normal;line-height:1.4;vertical-align:bottom}
 #view-analysis td .stock-id{min-width:0}
+
+/* ============================================================
+   معاينة Impeccable — الطبقة المقترحة
+   ============================================================ */
+:root{
+  --glow:#19305a; --nav-bg:#0f1622; --nav-active:#1b2b45; --nav-active-text:#dce8ff;
+  --seg-bg:#101927; --seg-active:#284266; --seg-active-text:#eef4ff;
+  --on-accent:#0b101a; --radius:16px;
+}
+body.light{
+  --glow:transparent; --nav-bg:#eaf0f8; --nav-active:#d8e5fb; --nav-active-text:#244579;
+  --seg-bg:var(--bg3); --seg-active:#cbdcf8; --seg-active-text:#234777; --on-accent:#fff;
+}
+body{
+  background:radial-gradient(circle at 75% -14%,var(--glow) 0,transparent 34%),var(--bg)}
+::selection{background:color-mix(in srgb,var(--accent) 35%,transparent);color:var(--text)}
+*{scrollbar-color:var(--border) transparent;scrollbar-width:thin}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input::placeholder{color:var(--text2);opacity:1}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.zero{color:var(--text)}
+
+/* header */
+.header-title h1{font-size:28px;letter-spacing:0}
+.index-chip .iname{font-weight:600}
+.index-chip .ichg{font-size:12px}
+
+/* sidebar */
+nav.tabs{background:var(--nav-bg)}
+body.light nav.tabs{background:var(--nav-bg)}
+nav.tabs button{font-size:14px;font-weight:600;color:var(--text2)}
+nav.tabs button:hover{color:var(--text);background:color-mix(in srgb,var(--nav-active) 50%,transparent)}
+nav.tabs button.active,body.light nav.tabs button.active{background:var(--nav-active);color:var(--nav-active-text)}
+nav.tabs button:nth-child(4){margin-top:0}
+.nav-group{font-size:12px;font-weight:600;color:var(--text2);padding:24px 13px 8px;opacity:.85}
+
+/* market switch: sidebar already does this on desktop */
+.market-switch{background:var(--seg-bg)}
+.market-switch button.active,body.light .market-switch button.active{background:var(--seg-active);color:var(--seg-active-text)}
+@media(min-width:721px){.market-switch{display:none!important}}
+
+/* buttons */
+.btn-primary{background:var(--accent);color:var(--on-accent);font-weight:700}
+.btn-primary:hover{filter:none;background:color-mix(in srgb,var(--accent) 88%,var(--text))}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);font-weight:600;padding:5px 14px}
+.btn-ghost:hover{color:var(--red);border-color:color-mix(in srgb,var(--red) 55%,transparent)}
+
+/* hero */
+.hero-primary,body.light .hero-primary{background:var(--bg2)}
+.hero-label{font-weight:600}
+.hero-day{display:flex;align-items:baseline;gap:10px;font-size:17px;margin:2px 0 14px;color:var(--text2)}
+.hero-day span{font-size:13px;font-weight:600;color:var(--text2)}
+.hero-day b{font-weight:700}
+.hero-day.pos b{color:var(--green)} .hero-day.neg b{color:var(--red)}
+.hero-pnl,.hero-pnl.pos{background:var(--bg3);color:var(--text2);font-weight:600;gap:10px;border-radius:10px}
+.hero-pnl b{font-weight:700}
+.hero-side .side-value{font-size:clamp(20px,1.8vw,24px)}
+.hero-side .side-quiet{font-size:18px;color:var(--text2);font-weight:700}
+
+/* metric cards */
+.portfolio-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+.portfolio-metrics .card .clabel{font-size:13px;font-weight:600}
+.portfolio-metrics .card .csub{font-size:12px;margin-top:6px;direction:rtl;text-align:right}
+.cards{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+
+/* holdings */
+.portfolio-grid{grid-template-columns:minmax(0,1fr) minmax(250px,290px)}
+.portfolio-holdings table{min-width:760px}
+.portfolio-holdings th{font-size:12px;font-weight:600;padding:12px 14px}
+.portfolio-holdings td{font-size:13.5px;padding:13px 14px}
+.portfolio-holdings .num{font-weight:500}
+.portfolio-holdings .strong{font-weight:700;color:var(--text)}
+.portfolio-holdings td.pos .strong{color:var(--green)} .portfolio-holdings td.neg .strong{color:var(--red)}
+.portfolio-holdings .quiet{color:var(--text2)}
+.stock-stack{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stock-stack .stock-name{font-weight:700;unicode-bidi:isolate}
+.stock-meta{font-size:12px;color:var(--text2);white-space:nowrap}
+.pct-sub{display:block;font-size:12px;font-weight:500;margin-top:2px}
+.portfolio-holdings .weight-cell{min-width:120px}
+.allocation-note,.analysis-note,.compare-metric-note,.monthly-caption{font-size:12.5px}
+.panel-head h2,.allocation-panel h2{font-size:18px}
+tr:hover td{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+@media(max-width:1500px){
+  .portfolio-grid{grid-template-columns:1fr}
+  .portfolio-grid>.allocation-panel{min-height:0}
+  .allocation-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));column-gap:28px}
+}
+
+/* comparison methodology */
+details.compare-explain{margin:16px 0 0}
+details.compare-explain summary{cursor:pointer;color:var(--text);font-weight:700;font-size:14px;list-style-position:inside}
+details.compare-explain[open] summary{margin-bottom:10px}
+
+/* mobile */
+@media(max-width:720px){
+  body{background:var(--bg)}
+  nav.tabs{background:color-mix(in srgb,var(--nav-bg) 97%,transparent)}
+  body.light nav.tabs{background:color-mix(in srgb,var(--nav-bg) 97%,transparent)}
+  nav.tabs button[data-view="us"],nav.tabs button[data-view="all"],.nav-group{display:none}
+  nav.tabs button{font-size:11.5px;min-width:84px}
+  .hero-day{font-size:15px}
+  .portfolio-metrics{grid-template-columns:1fr 1fr}
+  .portfolio-metrics .card:first-child{grid-column:1/-1}
+  .holding-mobile-details div{font-size:12px}
+  .holding-mobile-details strong{font-size:13px}
+  .holding-mobile-value small{font-size:12px}
+  .holding-mobile .btn-ghost{margin-top:14px}
+  .indices{grid-template-columns:1fr 1fr}
+  .index-chip{min-width:0;flex-wrap:wrap;gap:2px 8px;padding:8px 10px}
+}
 </style>
 </head>
 <body>
@@ -412,19 +523,19 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
 <!-- ================= الترويسة ================= -->
 <header>
   <div class="header-row">
-    <div class="header-title"><div class="eyebrow">لوحة المحفظة الاستثمارية</div><h1 id="pageTitle">نظرة عامة على محفظتك</h1></div>
+    <div class="header-title"><h1 id="pageTitle">نظرة عامة على محفظتك</h1></div>
     <div class="logo"><span class="dot"></span> محفظتي</div>
     <div class="indices">
-      <div class="index-chip" id="chip-sa" title="قيمة المحفظة السعودية وأداؤها الكلي منذ الشراء">
-        <span class="iname">محفظتي السعودية</span><span class="ival num">—</span><span class="ichg num">—</span>
+      <div class="index-chip" id="chip-sa" title="تغير المحفظة السعودية منذ إغلاق أمس">
+        <span class="iname">السعودية اليوم</span><span class="ival num">—</span><span class="ichg num">—</span>
       </div>
-      <div class="index-chip" id="chip-us" title="قيمة المحفظة الأمريكية وأداؤها الكلي منذ الشراء">
-        <span class="iname">محفظتي الأمريكية</span><span class="ival num">—</span><span class="ichg num">—</span>
+      <div class="index-chip" id="chip-us" title="تغير المحفظة الأمريكية منذ إغلاق أمس">
+        <span class="iname">الأمريكية اليوم</span><span class="ival num">—</span><span class="ichg num">—</span>
       </div>
     </div>
     <div class="header-actions">
       <span class="last-update">آخر تحديث: <span id="lastUpdate">—</span><span class="status-dot wait" id="statusDot"></span></span>
-      <label class="switch"><input type="checkbox" id="autoRefreshToggle" checked> تلقائي</label>
+      <label class="switch" title="تحديث الأسعار تلقائياً"><input type="checkbox" id="autoRefreshToggle" checked> تحديث تلقائي</label>
       <button class="btn btn-icon" id="refreshBtn" title="تحديث الأسعار"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>تحديث</button>
       <button class="btn btn-icon" id="themeBtn" title="تبديل المظهر"><svg class="ico" style="margin-inline-end:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
     </div>
@@ -436,6 +547,7 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
   <button data-view="sa" class="active"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>المحفظة السعودية</button>
   <button data-view="us"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>المحفظة الأمريكية</button>
   <button data-view="all"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>المحفظة الشاملة</button>
+  <div class="nav-group" aria-hidden="true">السجلات والتحليل</div>
   <button data-view="records"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>سجل الصفقات</button>
   <button data-view="dividends"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>التوزيعات النقدية</button>
   <button data-view="cash"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>الرصيد النقدي</button>
@@ -501,15 +613,6 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
 
 <!-- ===== مقارنة الأداء ===== -->
 <section class="view" id="view-compare">
-  <div class="compare-explain"><strong>منهجية المقارنة:</strong> تقيس الخطوط السعرية تغير قيمة الأسهم أثناء الاحتفاظ بها، وتربط عوائد الفترات بعد استبعاد أثر الشراء والبيع؛ لا تشمل النقد أو التوزيعات أو العمولات. تقارن السعودية بتاسي السعري، والأمريكية بمؤشر S&amp;P 500 السعري. تُعرض التوزيعات السعودية المسجلة في خط منفصل، دون حساب فرق مع مؤشر سعري لا يشمل توزيعات السوق.
-    تُعامل الصفقات كأن أثرها يبدأ بعد إغلاق يوم تنفيذها؛ فلا تدخل نتيجة شراء وبيع السهم في اليوم نفسه في الخط السعري. يبدأ خط كل سوق من أول إغلاق متاح بعد أول شراء.
-    تتطلب المقارنة الشاملة إغلاقات يومية متصلة للمؤشرين، وتزن عائد كل مؤشر بقيمة الأسهم المستثمرة في سوقه عند بداية كل فترة، مع تحويل الدولار إلى الريال بالسعر المحدد في الإعدادات. لأن إغلاقات تاسي القديمة في المصدر التلقائي أسبوعية، يبدأ الخط الشامل من أول مقطع يومي مشترك متاح؛ ولا يُنسب له أداء منذ تأسيس المحفظة ما لم تتوفر بيانات يومية تغطي تلك الفترة.
-    <div class="compare-terms">
-      <div><strong>عائد أسهمك</strong>تغير أسعار الأسهم التي امتلكتها خلال الفترة، بعد عزل أثر الشراء والبيع. صف التوزيعات يضيف توزيعاتك المسجلة على حدة.</div>
-      <div><strong>عائد المرجع</strong>تغير المؤشر السعري في الفترة نفسها: تاسي للسعودية، وS&amp;P 500 للأمريكية، ومزيج منهما للشاملة.</div>
-      <div><strong>الفرق بينهما</strong>طرح عائد المرجع من عائد أسهمك يعطي نقاطًا مئوية. والتفوق النسبي يقارن قيمة استثمار افتراضي متساوٍ في نهاية الفترة.</div>
-    </div>
-    <p style="margin-top:12px">عند تفعيل التحديث التلقائي، تُراجع الأسعار التاريخية في صفحة المقارنة كل 30 دقيقة، وعند العودة إلى التبويب. كما يُحدَّث الحساب عند فتح الصفحة أو الضغط على «تحديث». يستمر ذلك مع الأيام والسنوات بقدر توفر بيانات المصدر؛ ولا تُملأ إغلاقات تاسي اليومية المفقودة بقيم مفترضة.</p></div>
   <div class="panel">
     <div class="panel-head"><h2>مقارنة أداء المحفظة مع المؤشرات</h2>
       <span class="last-update" id="compareNote"></span></div>
@@ -526,6 +629,15 @@ body.light .hero-primary{background:linear-gradient(115deg,#dfeafd,#f6f9ff)}
       <input type="file" id="tasiCsvFile" accept=".csv,text/csv" hidden>
       <span>لإطالة تاريخ المقارنة الشاملة، استورد إغلاقات تاسي اليومية منذ بداية استثمارك الأمريكي بملف يحتوي عمودي التاريخ والإغلاق. تُحفظ البيانات ضمن النسخة الاحتياطية. <a href="https://returnsview.com/stock/TASI/" target="_blank" rel="noopener noreferrer">مصدر بيانات تاسي الحالي</a></span></div>
   </div>
+  <details class="compare-explain"><summary>كيف تُحسب المقارنة؟</summary> تقيس الخطوط السعرية تغير قيمة الأسهم أثناء الاحتفاظ بها، وتربط عوائد الفترات بعد استبعاد أثر الشراء والبيع؛ لا تشمل النقد أو التوزيعات أو العمولات. تقارن السعودية بتاسي السعري، والأمريكية بمؤشر S&amp;P 500 السعري. تُعرض التوزيعات السعودية المسجلة في خط منفصل، دون حساب فرق مع مؤشر سعري لا يشمل توزيعات السوق.
+    تُعامل الصفقات كأن أثرها يبدأ بعد إغلاق يوم تنفيذها؛ فلا تدخل نتيجة شراء وبيع السهم في اليوم نفسه في الخط السعري. يبدأ خط كل سوق من أول إغلاق متاح بعد أول شراء.
+    تتطلب المقارنة الشاملة إغلاقات يومية متصلة للمؤشرين، وتزن عائد كل مؤشر بقيمة الأسهم المستثمرة في سوقه عند بداية كل فترة، مع تحويل الدولار إلى الريال بالسعر المحدد في الإعدادات. لأن إغلاقات تاسي القديمة في المصدر التلقائي أسبوعية، يبدأ الخط الشامل من أول مقطع يومي مشترك متاح؛ ولا يُنسب له أداء منذ تأسيس المحفظة ما لم تتوفر بيانات يومية تغطي تلك الفترة.
+    <div class="compare-terms">
+      <div><strong>عائد أسهمك</strong>تغير أسعار الأسهم التي امتلكتها خلال الفترة، بعد عزل أثر الشراء والبيع. صف التوزيعات يضيف توزيعاتك المسجلة على حدة.</div>
+      <div><strong>عائد المرجع</strong>تغير المؤشر السعري في الفترة نفسها: تاسي للسعودية، وS&amp;P 500 للأمريكية، ومزيج منهما للشاملة.</div>
+      <div><strong>الفرق بينهما</strong>طرح عائد المرجع من عائد أسهمك يعطي نقاطًا مئوية. والتفوق النسبي يقارن قيمة استثمار افتراضي متساوٍ في نهاية الفترة.</div>
+    </div>
+    <p style="margin-top:12px">عند تفعيل التحديث التلقائي، تُراجع الأسعار التاريخية في صفحة المقارنة كل 30 دقيقة، وعند العودة إلى التبويب. كما يُحدَّث الحساب عند فتح الصفحة أو الضغط على «تحديث». يستمر ذلك مع الأيام والسنوات بقدر توفر بيانات المصدر؛ ولا تُملأ إغلاقات تاسي اليومية المفقودة بقيم مفترضة.</p></details>
 </section>
 
 <!-- ===== تحليل المراكز ===== -->
@@ -688,17 +800,30 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7
 const CUR = {SA:'ر.س', US:'$'};
 
 /* عرض مبلغ بعملته */
-function money(v, market){ return (market==='US' ? '$'+fmt.format(v) : fmt.format(v)+' ر.س'); }
-function sar(v){ return fmt.format(v)+' ر.س'; }
-function pct(v){ return (v>=0?'+':'')+fmt.format(v)+'%'; }
-function cls(v){ return v>=0?'pos':'neg'; }
+const LRI='\u2066', PDI='\u2069';
+function nm(v){ return LRI+fmt.format(v)+PDI; }
+function money(v, market){ return (market==='US' ? LRI+'$'+fmt.format(v)+PDI : nm(v)+' ر.س'); }
+function sar(v){ return nm(v)+' ر.س'; }
+function pct(v){ return LRI+(v>0?'+':'')+fmt.format(v)+'%'+PDI; }
+function cls(v){ return v>0.004?'pos':v<-0.004?'neg':'zero'; }
+/* تغير اليوم: (السعر الحالي − إغلاق أمس) × الكمية، بعملة المحفظة (الشاملة بالريال) */
+function dayChange(pf, market){
+  let amt=0, base=0, n=0;
+  for(const p of pf.positions(market)){
+    if(p.price==null || p.prevClose==null) continue;
+    const k = market==='ALL' ? (x=>pf.toSAR(x,p.market)) : (x=>x);
+    amt += k((p.price-p.prevClose)*p.qty); base += k(p.prevClose*p.qty); n++;
+  }
+  return n && base>0 ? {amt, pct: amt/base*100} : null;
+}
+function rowDay(p){ return (p.price==null||p.prevClose==null||!p.prevClose) ? null : (p.price-p.prevClose)/p.prevClose*100; }
 function htmlEscape(v){ return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 /* تطبيع النص العربي للبحث (توحيد الهمزات والتاء المربوطة) */
 function normAr(t){ return t.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي'); }
 /* عرض مزدوج: المبلغ بالدولار وتحته المعادل بالريال بخط صغير */
 function moneyDual(v, market, rate){
   if(market !== 'US') return money(v, market);
-  return `$${fmt.format(v)}<span class="sub-sar">≈ ${fmt.format(v*rate)} ر.س</span>`;
+  return `${LRI}$${fmt.format(v)}${PDI}<span class="sub-sar">≈ ${nm(v*rate)} ر.س</span>`;
 }
 /* مدة الاحتفاظ بصيغة قابلة للقراءة: سنوات وأشهر وأيام */
 function humanDur(days){
@@ -1906,9 +2031,9 @@ class UI {
     const curLabel = market==='US' ? '$' : 'ر.س';
     // في المحفظة الأمريكية: المبلغ بالدولار وتحته المعادل بالريال
     const m = v => market==='US' ? moneyDual(v,'US',pf.rate) : fmt.format(v)+' ر.س';
+    const netRealized = st.realizedP - st.realizedL;
     const metricCards = [
-      ['الأرباح المحققة', m(st.realizedP), 1],
-      ['الخسائر المحققة', m(st.realizedL), st.realizedL>0?-1:0],
+      ['صافي الأرباح المحققة', m(netRealized), netRealized, `أرباح ${m(st.realizedP)} · خسائر ${m(st.realizedL)}`],
       ['إجمالي التوزيعات', m(st.divs), null],
       [market==='SA'?'الكاش السعودي':market==='US'?'الكاش الأمريكي':'الرصيد النقدي الكلي', m(st.cash), st.cash<0?-1:null],
     ];
@@ -1930,38 +2055,39 @@ class UI {
       <div class="hero-primary">
         <div class="hero-label">إجمالي قيمة المحفظة ${marketTitle}</div>
         <div class="hero-value">${st.priced?m(st.value):'—'}</div>
-        <div class="hero-pnl ${cls(st.unrealized)}">الأرباح/الخسائر غير المحققة:
-          ${st.priced?m(st.unrealized):'—'} ${st.priced?'('+pct(st.unrealizedPct)+')':''}</div>
-        <div class="hero-foot">التغير منذ الشراء · المبالغ بعملة المحفظة</div>
+        ${(()=>{const d=dayChange(pf,market); return `<div class="hero-day ${d?cls(d.amt):''}"><span>اليوم</span>
+          <b>${d?m(d.amt):'—'}</b><b>${d?pct(d.pct):''}</b></div>`;})()}
+        <div class="hero-pnl"><span>منذ الشراء (غير محقق)</span>
+          <b class="${cls(st.unrealized)}">${st.priced?m(st.unrealized):'—'} ${st.priced?pct(st.unrealizedPct):''}</b></div>
       </div>
       <div class="hero-side">
-        <div><div class="side-label">إجمالي التكلفة</div><div class="side-value">${m(st.cost)}</div></div>
-        <div class="side-divider"></div>
         <div><div class="side-label">صافي الثروة مع الرصيد النقدي</div><div class="side-value">${st.priced?m(st.netWorth):'—'}</div></div>
+        <div class="side-divider"></div>
+        <div><div class="side-label">إجمالي التكلفة</div><div class="side-value side-quiet">${m(st.cost)}</div></div>
       </div>
     </div><div class="cards portfolio-metrics">${metricCards.map(c=>`
       <div class="card"><div class="clabel">${c[0]}</div>
         <div class="cval ${c[2]==null?'':cls(c[2])}">${c[1]}</div>
-        ${c[3]?`<div class="csub ${cls(c[2])}">${c[3]}</div>`:''}</div>`).join('')}</div>`;
+        ${c[3]?`<div class="csub">${c[3]}</div>`:''}</div>`).join('')}</div>`;
 
     const rows = pos.map(p=>{
       const stale = p.priceTs && (Date.now()-p.priceTs > 10*60*1000);
+      const dd = rowDay(p);
       return `<tr>
-        <td><span class="sym-badge">${htmlEscape(p.symbol)}</span>${p.lots.length>1
-          ? `<span class="lot-badge" title="اشتريت هذا السهم على ${p.lots.length} دفعات">${p.lots.length} دفعات</span>` : ''}</td>
-        <td><div class="stock-id">${logoHtml(p.symbol,p.market,p.name,'sm')}<span class="stock-name">${htmlEscape(p.name||'—')}</span></div></td>
-        <td><span class="mkt-badge mkt-${p.market}">${p.market==='SA'?'سعودي':'أمريكي'}</span></td>
-        <td class="num">${fmt0.format(p.qty)}</td>
-        <td class="num">${p.firstBuy}</td>
-        <td title="${p.holdDays} يوم">${humanDur(p.holdDays)}</td>
-        <td class="num">${fmt.format(p.avgCost)}</td>
-        <td class="num">${p.price!=null?fmt.format(p.price):'—'}${stale?'<span class="stale-tag">سعر مخزّن</span>':''}</td>
-        <td class="num">${p.value!=null?moneyDual(p.value,p.market,pf.rate):'—'}</td>
-        <td class="num">${moneyDual(p.cost,p.market,pf.rate)}</td>
-        <td class="num ${p.pnl!=null?cls(p.pnl):''}">${p.pnl!=null?moneyDual(p.pnl,p.market,pf.rate):'—'}</td>
-        <td class="num ${p.pnlPct!=null?cls(p.pnlPct):''}">${p.pnlPct!=null?pct(p.pnlPct):'—'}</td>
-        <td class="num">${fmt.format(p.weight)}%</td>
-        <td><button class="btn-red btn-sm" data-sell="${p.market}:${htmlEscape(p.symbol)}">بيع</button></td>
+        <td><div class="stock-id">${logoHtml(p.symbol,p.market,p.name,'sm')}<div class="stock-stack">
+          <span class="stock-name" dir="auto">${htmlEscape(p.name||p.symbol)}${p.lots.length>1
+            ? `<span class="lot-badge" title="اشتريت هذا السهم على ${p.lots.length} دفعات">${p.lots.length} دفعات</span>` : ''}</span>
+          <span class="stock-meta"><span dir="ltr">${htmlEscape(p.symbol)}</span>${market==='ALL'?` · ${p.market==='SA'?'سعودي':'أمريكي'}`:''}
+            · منذ ${humanDur(p.holdDays)}</span></div></div></td>
+        <td class="num strong">${p.value!=null?moneyDual(p.value,p.market,pf.rate):'—'}</td>
+        <td class="num ${p.pnl!=null?cls(p.pnl):''}"><span class="strong">${p.pnl!=null?money(p.pnl,p.market):'—'}</span>
+          <small class="pct-sub">${p.pnlPct!=null?pct(p.pnlPct):''}</small></td>
+        <td class="num ${dd!=null?cls(dd):''}">${dd!=null?pct(dd):'—'}</td>
+        <td><div class="weight-cell"><div class="weight-bar"><span style="width:${Math.min(100,p.weight)}%"></span></div><span class="num">${fmt.format(p.weight)}%</span></div></td>
+        <td class="num quiet">${fmt0.format(p.qty)}</td>
+        <td class="num quiet">${fmt.format(p.avgCost)}</td>
+        <td class="num quiet">${p.price!=null?fmt.format(p.price):'—'}${stale?'<span class="stale-tag">سعر مخزّن</span>':''}</td>
+        <td><button class="btn-ghost btn-sm" data-sell="${p.market}:${htmlEscape(p.symbol)}">بيع</button></td>
       </tr>`;
     }).join('');
     // عرض الجوال يعيد كل أعمدة الجدول الأصلية داخل بطاقة قابلة للقراءة.
@@ -1986,7 +2112,7 @@ class UI {
           ${detail('النسبة',p.pnlPct!=null?pct(p.pnlPct):'—')}
           ${detail('الوزن',fmt.format(p.weight)+'%')}
         </div>
-        <button class="btn-red btn-sm" data-sell="${p.market}:${htmlEscape(p.symbol)}">بيع</button>
+        <button class="btn-ghost btn-sm" data-sell="${p.market}:${htmlEscape(p.symbol)}">بيع</button>
       </article>`;
     }).join('');
     const allocation = pf.positions(market).filter(p=>p.value!=null)
@@ -2015,9 +2141,8 @@ class UI {
     document.getElementById('view-'+view).innerHTML = cardsHtml + `
       <div class="portfolio-grid"><div class="panel portfolio-holdings">
         <div class="panel-head">
-          <div><h2>الحيازات ${marketTitle}
-            <span style="font-size:12px;color:var(--text2)">(${curLabel}${market==='ALL'?' — الدولار محوّل @'+fmt.format(pf.rate):''})</span></h2>
-            <div class="head-subtitle">${pos.length} شركات · مرتبة حسب ${ts.sort==='value'?'القيمة السوقية':ts.sort==='pnl'?'الربح':ts.sort==='pct'?'نسبة الربح/الخسارة':'مدة الاحتفاظ'}</div></div>
+          <div><h2>الحيازات ${marketTitle}</h2>
+            <div class="head-subtitle">${pos.length} شركات · ${curLabel}${market==='ALL'?' (الدولار محوّل @'+fmt.format(pf.rate)+')':''} · مرتبة حسب ${ts.sort==='value'?'القيمة السوقية':ts.sort==='pnl'?'الربح':ts.sort==='pct'?'نسبة الربح/الخسارة':'مدة الاحتفاظ'}</div></div>
           <div class="toolbar">
             <input placeholder="بحث عن سهم..." value="${htmlEscape(ts.q)}" data-search="${view}">
             ${mktFilter}
@@ -2033,9 +2158,8 @@ class UI {
         <div class="table-wrap">
           ${pos.length===0 ? '<div class="empty-msg">لا توجد أسهم — ابدأ بإضافة صفقة شراء</div>' : `
           <table><thead><tr>
-            <th>الرمز</th><th>اسم الشركة</th><th>السوق</th><th>الكمية</th><th>أول شراء</th>
-            <th>مدة الاحتفاظ</th><th>متوسط التكلفة</th><th>السعر الحالي</th><th>القيمة السوقية</th>
-            <th>التكلفة</th><th>الربح/الخسارة</th><th>النسبة</th><th>الوزن</th><th></th>
+            <th>السهم</th><th>القيمة السوقية</th><th>الربح/الخسارة</th><th>اليوم</th><th>الوزن</th>
+            <th>الكمية</th><th>متوسط التكلفة</th><th>السعر الحالي</th><th><span class="sr-only">إجراء</span></th>
           </tr></thead><tbody>${rows}</tbody></table>`}
         </div>
         <div class="holding-mobile-list">${pos.length?mobileCards:'<div class="empty-msg">لا توجد أسهم — ابدأ بإضافة صفقة شراء</div>'}</div>
@@ -2258,10 +2382,12 @@ class UI {
       const chip = document.getElementById(chipId);
       const st = pf.stats(market);
       const ival = chip.querySelector('.ival'), ichg = chip.querySelector('.ichg');
-      if(!st.priced || st.cost<=0){ ival.textContent='—'; ichg.textContent='—'; return; }
-      ival.textContent = market==='US' ? '$'+fmt.format(st.value) : fmt.format(st.value)+' ر.س';
-      ichg.textContent = `${st.unrealized>=0?'▲':'▼'} ${fmt.format(Math.abs(st.unrealized))} (${pct(st.unrealizedPct)})`;
-      ichg.className = 'ichg num ' + cls(st.unrealized);
+      const d = dayChange(pf, market);
+      if(!st.priced || st.cost<=0 || !d){ ival.textContent='—'; ichg.textContent='—'; return; }
+      ival.textContent = money(d.amt, market);
+      ival.className = 'ival num ' + cls(d.amt);
+      ichg.textContent = pct(d.pct);
+      ichg.className = 'ichg num ' + cls(d.amt);
     };
     set('chip-sa','SA'); set('chip-us','US');
   }
@@ -3174,6 +3300,23 @@ class App {
 }
 
 const app = new App();
+/* سلوكيات: Esc يغلق النوافذ، التمرير للأعلى عند تبديل القسم، إبراز التبويب النشط */
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(o=>o.classList.remove('open'));
+});
+(function(){
+  const ui = app.ui, orig = ui.switchView.bind(ui);
+  ui.switchView = function(v){
+    orig(v);
+    window.scrollTo({top:0});
+    const portfolio = ['sa','us','all'].includes(v);
+    document.querySelector('#mainTabs button[data-view="sa"]').classList.toggle('active', portfolio);
+    const act = document.querySelector('#mainTabs button.active');
+    if(act && matchMedia('(max-width:720px)').matches) act.scrollIntoView({inline:'center',block:'nearest'});
+  };
+  document.querySelectorAll('.modal-overlay .modal').forEach(m=>{ m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true'); });
+  document.getElementById('toast').setAttribute('role','status');
+})();
 app.init();
 </script>
 </body>
