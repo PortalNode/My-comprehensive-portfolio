@@ -583,6 +583,20 @@ details.compare-explain[open] summary{margin-bottom:10px}
   .holdings-table th:nth-child(6),.holdings-table th:nth-child(7),
   .holdings-table td:nth-child(6),.holdings-table td:nth-child(7){display:none}
 }
+
+/* جدول الحيازات: العنوان والوحدة في سطر واحد، وأرقام الصف الرئيسية على خط واحد */
+.holdings-table thead th{vertical-align:middle;white-space:nowrap}
+.th-unit{display:inline;font-size:11px;font-weight:500;color:var(--text2);opacity:.8;margin:0 0 0 0;margin-inline-start:5px}
+.th-unit::before{content:'('}
+.th-unit::after{content:')'}
+.holdings-table tbody td{vertical-align:baseline;padding-top:15px;padding-bottom:15px}
+.holdings-table .stock-id{align-items:flex-start}
+.holdings-table .co-logo{margin-top:1px}
+.holdings-table .pct-sub{font-size:11.5px;font-weight:500;margin-top:5px;opacity:.9}
+.holdings-table .stock-meta{margin-top:3px}
+.holdings-table .weight-cell{align-items:baseline}
+.holdings-table .weight-bar{align-self:center}
+.holdings-table .day-chip{padding:2px 7px;font-size:12.5px}
 </style>
 </head>
 <body>
