@@ -516,6 +516,39 @@ details.compare-explain[open] summary{margin-bottom:10px}
   .indices{grid-template-columns:1fr 1fr}
   .index-chip{min-width:0;flex-wrap:wrap;gap:2px 8px;padding:8px 10px}
 }
+
+/* جدول الحيازات: محاذاة الأعمدة وعملة العرض */
+.portfolio-holdings table.holdings-table{table-layout:fixed;width:100%;min-width:1040px}
+.holdings-table .c-stock{width:auto}
+.holdings-table .c-money{width:132px}
+.holdings-table .c-day{width:96px}
+.holdings-table .c-weight{width:128px}
+.holdings-table .c-qty{width:76px}
+.holdings-table .c-small{width:104px}
+.holdings-table .c-act{width:72px}
+.holdings-table th,.holdings-table td{padding-inline:12px}
+.holdings-table th.th-num,.holdings-table td.num{text-align:right}
+.holdings-table td.num{direction:ltr}
+.th-unit{display:block;font-size:11px;font-weight:500;color:var(--text2);opacity:.8;margin-top:2px}
+.holdings-table thead th{vertical-align:bottom}
+.holdings-table .stock-stack{overflow:hidden}
+.holdings-table .stock-name{display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.holdings-table .lot-badge{margin:0;flex:none}
+.holdings-table .strong{font-size:14.5px}
+.holdings-table .pct-sub{font-size:12px;margin-top:3px}
+.day-chip{display:inline-block;padding:3px 8px;border-radius:8px;font-weight:600;font-size:13px;background:var(--bg3)}
+.day-chip.pos{color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent)}
+.day-chip.neg{color:var(--red);background:color-mix(in srgb,var(--red) 12%,transparent)}
+.holdings-table .weight-cell{min-width:0;gap:10px;justify-content:flex-start}
+.holdings-table .weight-cell .num{min-width:52px;text-align:right}
+.holdings-table .weight-bar{flex:none;width:52px;min-width:0;height:6px}
+.holdings-table td:last-child{text-align:left}
+.cur-switch{display:inline-flex;padding:3px;gap:2px;border:1px solid var(--border);border-radius:11px;background:var(--bg)}
+.cur-switch button{background:transparent;color:var(--text2);font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:8px}
+.cur-switch button[aria-pressed="true"]{background:var(--bg3);color:var(--text);box-shadow:inset 0 0 0 1px var(--border)}
+.cur-switch button:hover{color:var(--text)}
+.hero-equiv{font-size:13px;color:var(--text2);margin:-4px 0 12px}
+.hero-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -802,7 +835,8 @@ const CUR = {SA:'ر.س', US:'$'};
 /* عرض مبلغ بعملته */
 const LRI='\u2066', PDI='\u2069';
 function nm(v){ return LRI+fmt.format(v)+PDI; }
-function money(v, market){ return (market==='US' ? LRI+'$'+fmt.format(v)+PDI : nm(v)+' ر.س'); }
+function money(v, market){ return (market==='US' ? LRI+(v<0?'-':'')+'$'+fmt.format(Math.abs(v))+PDI : nm(v)+' ر.س'); }
+function signed(v){ return LRI+(v>0.004?'+':'')+fmt.format(v)+PDI; }
 function sar(v){ return nm(v)+' ر.س'; }
 function pct(v){ return LRI+(v>0?'+':'')+fmt.format(v)+'%'+PDI; }
 function cls(v){ return v>0.004?'pos':v<-0.004?'neg':'zero'; }
@@ -823,7 +857,7 @@ function normAr(t){ return t.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ة
 /* عرض مزدوج: المبلغ بالدولار وتحته المعادل بالريال بخط صغير */
 function moneyDual(v, market, rate){
   if(market !== 'US') return money(v, market);
-  return `${LRI}$${fmt.format(v)}${PDI}<span class="sub-sar">≈ ${nm(v*rate)} ر.س</span>`;
+  return `${money(v,'US')}<span class="sub-sar">≈ ${nm(v*rate)} ر.س</span>`;
 }
 /* مدة الاحتفاظ بصيغة قابلة للقراءة: سنوات وأشهر وأيام */
 function humanDur(days){
@@ -1997,7 +2031,7 @@ class UI {
     this.activeView = 'sa';
     this.activeRecord = 'buys';
     // حالة البحث/الفلترة/الترتيب لكل محفظة
-    this.tableState = { sa:{q:'',sort:'value'}, us:{q:'',sort:'value'}, all:{q:'',sort:'value',mkt:'ALL'} };
+    this.tableState = { sa:{q:'',sort:'value'}, us:{q:'',sort:'value',cur:'native'}, all:{q:'',sort:'value',mkt:'ALL',cur:'sar'} };
     this.sellCtx = null; // السهم الجاري بيعه
   }
   toast(msg, ok=true){
@@ -2030,7 +2064,8 @@ class UI {
     const st = pf.stats(market);
     const curLabel = market==='US' ? '$' : 'ر.س';
     // في المحفظة الأمريكية: المبلغ بالدولار وتحته المعادل بالريال
-    const m = v => market==='US' ? moneyDual(v,'US',pf.rate) : fmt.format(v)+' ر.س';
+    const usSar = market==='US' && this.tableState[view].cur==='sar';
+    const m = v => market==='US' ? (usSar ? nm(v*pf.rate)+' ر.س' : money(v,'US')) : nm(v)+' ر.س';
     const netRealized = st.realizedP - st.realizedL;
     const metricCards = [
       ['صافي الأرباح المحققة', m(netRealized), netRealized, `أرباح ${m(st.realizedP)} · خسائر ${m(st.realizedL)}`],
@@ -2053,8 +2088,11 @@ class UI {
     const marketTitle = market==='SA'?'السعودية':market==='US'?'الأمريكية':'الشاملة';
     const cardsHtml = `<div class="portfolio-hero">
       <div class="hero-primary">
-        <div class="hero-label">إجمالي قيمة المحفظة ${marketTitle}</div>
+        <div class="hero-top"><div class="hero-label">إجمالي قيمة المحفظة ${marketTitle}</div>${market==='US'?`<div class="cur-switch" role="group" aria-label="عملة العرض">
+          <button data-cur="${view}:native" aria-pressed="${!usSar}">دولار</button>
+          <button data-cur="${view}:sar" aria-pressed="${usSar}">ريال</button></div>`:''}</div>
         <div class="hero-value">${st.priced?m(st.value):'—'}</div>
+        ${market==='US'&&st.priced?`<div class="hero-equiv">${usSar?`≈ ${money(st.value,'US')} · بسعر صرف ${fmt.format(pf.rate)}`:`≈ ${nm(st.value*pf.rate)} ر.س`}</div>`:''}
         ${(()=>{const d=dayChange(pf,market); return `<div class="hero-day ${d?cls(d.amt):''}"><span>اليوم</span>
           <b>${d?m(d.amt):'—'}</b><b>${d?pct(d.pct):''}</b></div>`;})()}
         <div class="hero-pnl"><span>منذ الشراء (غير محقق)</span>
@@ -2070,6 +2108,18 @@ class UI {
         <div class="cval ${c[2]==null?'':cls(c[2])}">${c[1]}</div>
         ${c[3]?`<div class="csub">${c[3]}</div>`:''}</div>`).join('')}</div>`;
 
+    /* عملة عرض الجدول: الأمريكية بالدولار أو بالريال، والشاملة بعملة كل سهم أو بالريال */
+    const toSar = ts.cur==='sar' || market==='SA';
+    const mixed = market==='ALL' && !toSar;            // عملات مختلطة → رمز العملة داخل الخلية
+    const unit = toSar ? 'ر.س' : market==='US' ? '$' : '';
+    const conv = (v,mk) => mk==='US' && toSar ? v*pf.rate : v;
+    const cellMoney = (v,mk,sign) => mixed ? (sign&&v>0.004?LRI+'+'+PDI:'')+money(v,mk) : (sign?signed(conv(v,mk)):nm(conv(v,mk)));
+    const alt = (v,mk) => mk==='US' ? `title="${toSar?'$'+fmt.format(v):'≈ '+fmt.format(v*pf.rate)+' ر.س'}"` : '';
+    const th = (label,u) => `<th class="th-num">${label}${u?`<span class="th-unit">${u}</span>`:''}</th>`;
+    const curSwitch = market==='SA' ? '' : `<div class="cur-switch" role="group" aria-label="عملة عرض الجدول">
+      <button data-cur="${view}:native" aria-pressed="${!toSar}">${market==='US'?'دولار':'عملة السهم'}</button>
+      <button data-cur="${view}:sar" aria-pressed="${toSar}">ريال</button></div>`;
+
     const rows = pos.map(p=>{
       const stale = p.priceTs && (Date.now()-p.priceTs > 10*60*1000);
       const dd = rowDay(p);
@@ -2079,14 +2129,14 @@ class UI {
             ? `<span class="lot-badge" title="اشتريت هذا السهم على ${p.lots.length} دفعات">${p.lots.length} دفعات</span>` : ''}</span>
           <span class="stock-meta"><span dir="ltr">${htmlEscape(p.symbol)}</span>${market==='ALL'?` · ${p.market==='SA'?'سعودي':'أمريكي'}`:''}
             · منذ ${humanDur(p.holdDays)}</span></div></div></td>
-        <td class="num strong">${p.value!=null?moneyDual(p.value,p.market,pf.rate):'—'}</td>
-        <td class="num ${p.pnl!=null?cls(p.pnl):''}"><span class="strong">${p.pnl!=null?money(p.pnl,p.market):'—'}</span>
+        <td class="num strong" ${p.value!=null?alt(p.value,p.market):''}>${p.value!=null?cellMoney(p.value,p.market):'—'}</td>
+        <td class="num ${p.pnl!=null?cls(p.pnl):''}" ${p.pnl!=null?alt(p.pnl,p.market):''}><span class="strong">${p.pnl!=null?cellMoney(p.pnl,p.market,true):'—'}</span>
           <small class="pct-sub">${p.pnlPct!=null?pct(p.pnlPct):''}</small></td>
-        <td class="num ${dd!=null?cls(dd):''}">${dd!=null?pct(dd):'—'}</td>
-        <td><div class="weight-cell"><div class="weight-bar"><span style="width:${Math.min(100,p.weight)}%"></span></div><span class="num">${fmt.format(p.weight)}%</span></div></td>
+        <td class="num">${dd!=null?`<span class="day-chip ${cls(dd)}">${pct(dd)}</span>`:'—'}</td>
+        <td><div class="weight-cell"><span class="num">${fmt.format(p.weight)}%</span><span class="weight-bar"><span style="width:${Math.min(100,p.weight)}%"></span></span></div></td>
         <td class="num quiet">${fmt0.format(p.qty)}</td>
-        <td class="num quiet">${fmt.format(p.avgCost)}</td>
-        <td class="num quiet">${p.price!=null?fmt.format(p.price):'—'}${stale?'<span class="stale-tag">سعر مخزّن</span>':''}</td>
+        <td class="num quiet" ${alt(p.avgCost,p.market)}>${cellMoney(p.avgCost,p.market)}</td>
+        <td class="num quiet" ${p.price!=null?alt(p.price,p.market):''}>${p.price!=null?cellMoney(p.price,p.market):'—'}${stale?'<span class="stale-tag">سعر مخزّن</span>':''}</td>
         <td><button class="btn-ghost btn-sm" data-sell="${p.market}:${htmlEscape(p.symbol)}">بيع</button></td>
       </tr>`;
     }).join('');
@@ -2096,11 +2146,11 @@ class UI {
       const detail = (label,value)=>`<div>${label}<strong>${value}</strong></div>`;
       return `<article class="holding-mobile">
         <div class="holding-mobile-top">
-          <div class="holding-mobile-name">${logoHtml(p.symbol,p.market,p.name,'sm')}${htmlEscape(p.name||p.symbol)}
+          <div class="holding-mobile-name">${logoHtml(p.symbol,p.market,p.name,'sm')}<span dir="auto">${htmlEscape(p.name||p.symbol)}</span>
             <small>${htmlEscape(p.symbol)} · ${p.market==='SA'?'السوق السعودي':'السوق الأمريكي'}
               ${p.lots.length>1?' · '+p.lots.length+' دفعات':''}</small></div>
-          <div class="holding-mobile-value">${p.value!=null?moneyDual(p.value,p.market,pf.rate):'—'}
-            <small class="${p.pnl!=null?cls(p.pnl):''}">${p.pnl!=null?moneyDual(p.pnl,p.market,pf.rate)+' · '+pct(p.pnlPct):'—'}</small></div>
+          <div class="holding-mobile-value">${p.value!=null?money(conv(p.value,p.market),toSar?'SA':p.market):'—'}
+            <small class="${p.pnl!=null?cls(p.pnl):''}">${p.pnl!=null?money(conv(p.pnl,p.market),toSar?'SA':p.market)+' · '+pct(p.pnlPct):'—'}</small></div>
         </div>
         <div class="holding-mobile-details">
           ${detail('الكمية',fmt0.format(p.qty))}
@@ -2108,7 +2158,7 @@ class UI {
           ${detail('مدة الاحتفاظ',humanDur(p.holdDays))}
           ${detail('متوسط التكلفة',fmt.format(p.avgCost))}
           ${detail('السعر الحالي',p.price!=null?fmt.format(p.price)+(stale?' · سعر مخزّن':''):'—')}
-          ${detail('التكلفة',moneyDual(p.cost,p.market,pf.rate))}
+          ${detail('التكلفة',money(conv(p.cost,p.market),toSar?'SA':p.market))}
           ${detail('النسبة',p.pnlPct!=null?pct(p.pnlPct):'—')}
           ${detail('الوزن',fmt.format(p.weight)+'%')}
         </div>
@@ -2142,8 +2192,9 @@ class UI {
       <div class="portfolio-grid"><div class="panel portfolio-holdings">
         <div class="panel-head">
           <div><h2>الحيازات ${marketTitle}</h2>
-            <div class="head-subtitle">${pos.length} شركات · ${curLabel}${market==='ALL'?' (الدولار محوّل @'+fmt.format(pf.rate)+')':''} · مرتبة حسب ${ts.sort==='value'?'القيمة السوقية':ts.sort==='pnl'?'الربح':ts.sort==='pct'?'نسبة الربح/الخسارة':'مدة الاحتفاظ'}</div></div>
+            <div class="head-subtitle">${pos.length} شركات${toSar&&market!=='SA'?' · الدولار محوّل بسعر '+fmt.format(pf.rate):''} · مرتبة حسب ${ts.sort==='value'?'القيمة السوقية':ts.sort==='pnl'?'الربح':ts.sort==='pct'?'نسبة الربح/الخسارة':'مدة الاحتفاظ'}</div></div>
           <div class="toolbar">
+            ${curSwitch}
             <input placeholder="بحث عن سهم..." value="${htmlEscape(ts.q)}" data-search="${view}">
             ${mktFilter}
             <select data-sort="${view}">
@@ -2157,9 +2208,9 @@ class UI {
         </div>
         <div class="table-wrap">
           ${pos.length===0 ? '<div class="empty-msg">لا توجد أسهم — ابدأ بإضافة صفقة شراء</div>' : `
-          <table><thead><tr>
-            <th>السهم</th><th>القيمة السوقية</th><th>الربح/الخسارة</th><th>اليوم</th><th>الوزن</th>
-            <th>الكمية</th><th>متوسط التكلفة</th><th>السعر الحالي</th><th><span class="sr-only">إجراء</span></th>
+          <table class="holdings-table"><colgroup><col class="c-stock"><col class="c-money"><col class="c-money"><col class="c-day"><col class="c-weight"><col class="c-qty"><col class="c-small"><col class="c-small"><col class="c-act"></colgroup><thead><tr>
+            <th>السهم</th>${th('القيمة السوقية',unit)}${th('الربح/الخسارة',unit)}${th('اليوم')}${th('الوزن')}
+            ${th('الكمية')}${th('متوسط التكلفة',unit)}${th('السعر الحالي',unit)}<th><span class="sr-only">إجراء</span></th>
           </tr></thead><tbody>${rows}</tbody></table>`}
         </div>
         <div class="holding-mobile-list">${pos.length?mobileCards:'<div class="empty-msg">لا توجد أسهم — ابدأ بإضافة صفقة شراء</div>'}</div>
@@ -2873,6 +2924,8 @@ class App {
       if(sellBtn){ this.openSellModal(...sellBtn.dataset.sell.split(':').reverse()); return; }
       const addBtn = e.target.closest('[data-addbuy]');
       if(addBtn){ this.openBuyModal(addBtn.dataset.addbuy); return; }
+      const curBtn = e.target.closest('[data-cur]');
+      if(curBtn){ const [v,c] = curBtn.dataset.cur.split(':'); ui.tableState[v].cur = c; ui.renderPortfolioView(v); return; }
       const delLot = e.target.closest('[data-dellot]');
       if(delLot && confirm('حذف صفقة الشراء نهائياً؟')){
         const s = this.store.state;
@@ -3310,7 +3363,7 @@ document.addEventListener('keydown', e=>{
     orig(v);
     window.scrollTo({top:0});
     const portfolio = ['sa','us','all'].includes(v);
-    document.querySelector('#mainTabs button[data-view="sa"]').classList.toggle('active', portfolio);
+    document.querySelector('#mainTabs button[data-view="sa"]').classList.toggle('active', v==='sa' || (portfolio && matchMedia('(max-width:720px)').matches));
     const act = document.querySelector('#mainTabs button.active');
     if(act && matchMedia('(max-width:720px)').matches) act.scrollIntoView({inline:'center',block:'nearest'});
   };
