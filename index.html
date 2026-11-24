@@ -610,6 +610,9 @@ details.compare-explain[open] summary{margin-bottom:10px}
 /* الوزن: النسبة في السطر الرئيسي والشريط تحتها، فلا يتجاوز عرض العمود */
 .holdings-table .weight-cell{display:inline-flex;flex-direction:column;align-items:center;gap:6px}
 .holdings-table .weight-bar{width:48px;align-self:center}
+
+/* التكلفة الإجمالية للسهم: سطر ثانٍ تحت القيمة السوقية */
+.holdings-table .cost-sub{color:var(--text2);white-space:nowrap;direction:rtl}
 </style>
 </head>
 <body>
@@ -2190,7 +2193,8 @@ class UI {
             ? `<span class="lot-badge" title="اشتريت هذا السهم على ${p.lots.length} دفعات">${p.lots.length} دفعات</span>` : ''}</span>
           <span class="stock-meta"><span dir="ltr">${htmlEscape(p.symbol)}</span>${market==='ALL'?` · ${p.market==='SA'?'سعودي':'أمريكي'}`:''}
             · منذ ${humanDur(p.holdDays)}</span></div></div></td>
-        <td class="num strong" ${p.value!=null?alt(p.value,p.market):''}>${p.value!=null?cellMoney(p.value,p.market):'—'}</td>
+        <td class="num" ${p.value!=null?alt(p.value,p.market):''}><span class="strong">${p.value!=null?cellMoney(p.value,p.market):'—'}</span>
+          <small class="pct-sub cost-sub" ${alt(p.cost,p.market)}>التكلفة ${cellMoney(p.cost,p.market)}</small></td>
         <td class="num ${p.pnl!=null?cls(p.pnl):''}" ${p.pnl!=null?alt(p.pnl,p.market):''}><span class="strong">${p.pnl!=null?cellMoney(p.pnl,p.market,true):'—'}</span>
           <small class="pct-sub">${p.pnlPct!=null?pct(p.pnlPct):''}</small></td>
         <td class="num">${dd!=null?`<span class="day-chip ${cls(dd)}">${pct(dd)}</span>`:'—'}</td>
