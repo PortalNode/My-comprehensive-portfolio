@@ -549,6 +549,40 @@ details.compare-explain[open] summary{margin-bottom:10px}
 .cur-switch button:hover{color:var(--text)}
 .hero-equiv{font-size:13px;color:var(--text2);margin:-4px 0 12px}
 .hero-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* جدول الحيازات: خلية السهم لا تتجاوز عمودها، والأعمدة تضيق في الشاشات الأصغر */
+.portfolio-holdings{container-type:inline-size}
+.portfolio-holdings table.holdings-table{min-width:980px}
+.holdings-table td:first-child{overflow:hidden}
+.holdings-table .stock-id{display:flex;min-width:0;max-width:100%}
+.holdings-table .stock-stack{flex:1;min-width:0}
+.holdings-table .stock-name{min-width:0;overflow:hidden}
+.holdings-table .stock-name-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.holdings-table .stock-meta{overflow:hidden;text-overflow:ellipsis}
+.holdings-table .c-money{width:124px}
+.holdings-table .c-day{width:88px}
+.holdings-table .c-weight{width:116px}
+.holdings-table .c-qty{width:64px}
+.holdings-table .c-small{width:96px}
+.holdings-table .c-act{width:64px}
+@container (max-width:1000px){
+  .portfolio-holdings table.holdings-table{min-width:840px}
+  .holdings-table .c-money{width:108px}
+  .holdings-table .c-day{width:80px}
+  .holdings-table .c-weight{width:66px}
+  .holdings-table .weight-bar{display:none}
+  .holdings-table .c-qty{width:54px}
+  .holdings-table .c-small{width:86px}
+  .holdings-table .c-act{width:60px}
+  .holdings-table th,.holdings-table td{padding-inline:9px}
+  .holdings-table .strong{font-size:13.5px}
+}
+@container (max-width:830px){
+  .portfolio-holdings table.holdings-table{min-width:0}
+  .holdings-table col:nth-child(6),.holdings-table col:nth-child(7),
+  .holdings-table th:nth-child(6),.holdings-table th:nth-child(7),
+  .holdings-table td:nth-child(6),.holdings-table td:nth-child(7){display:none}
+}
 </style>
 </head>
 <body>
@@ -2125,7 +2159,7 @@ class UI {
       const dd = rowDay(p);
       return `<tr>
         <td><div class="stock-id">${logoHtml(p.symbol,p.market,p.name,'sm')}<div class="stock-stack">
-          <span class="stock-name" dir="auto">${htmlEscape(p.name||p.symbol)}${p.lots.length>1
+          <span class="stock-name" title="${htmlEscape(p.name||p.symbol)}"><span class="stock-name-text" dir="auto">${htmlEscape(p.name||p.symbol)}</span>${p.lots.length>1
             ? `<span class="lot-badge" title="اشتريت هذا السهم على ${p.lots.length} دفعات">${p.lots.length} دفعات</span>` : ''}</span>
           <span class="stock-meta"><span dir="ltr">${htmlEscape(p.symbol)}</span>${market==='ALL'?` · ${p.market==='SA'?'سعودي':'أمريكي'}`:''}
             · منذ ${humanDur(p.holdDays)}</span></div></div></td>
