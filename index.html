@@ -597,6 +597,19 @@ details.compare-explain[open] summary{margin-bottom:10px}
 .holdings-table .weight-cell{align-items:baseline}
 .holdings-table .weight-bar{align-self:center}
 .holdings-table .day-chip{padding:2px 7px;font-size:12.5px}
+
+/* جدول الحيازات: كل رقم في منتصف عموده تحت عنوانه تماماً */
+.holdings-table th.th-num,.holdings-table td.num{text-align:center}
+.holdings-table td.num .strong,.holdings-table td.num .pct-sub{text-align:center}
+.holdings-table .weight-cell{justify-content:center}
+.holdings-table .weight-cell .num{min-width:0;text-align:center}
+.holdings-table td:nth-child(5){text-align:center}
+/* سطر المحاذاة يأتي من اسم السهم لا من أسفل صورة الشعار */
+.holdings-table .stock-id{align-items:baseline}
+.holdings-table .stock-id .co-logo{align-self:center;margin-top:0}
+/* الوزن: النسبة في السطر الرئيسي والشريط تحتها، فلا يتجاوز عرض العمود */
+.holdings-table .weight-cell{display:inline-flex;flex-direction:column;align-items:center;gap:6px}
+.holdings-table .weight-bar{width:48px;align-self:center}
 </style>
 </head>
 <body>
